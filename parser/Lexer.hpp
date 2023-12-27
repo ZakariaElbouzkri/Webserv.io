@@ -6,14 +6,14 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 15:14:06 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 18:01:37 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/27 20:55:41 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
+
 #include "servIO.hpp"
-#include "Token.hpp"
 
 class	Lexer {
 	public:

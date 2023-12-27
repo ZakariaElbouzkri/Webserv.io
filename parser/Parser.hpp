@@ -6,16 +6,13 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 08:53:29 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 18:09:47 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/27 20:55:15 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include "Lexer.hpp"
-#include "MainContext.hpp"
-#include <exception>
-#include <sstream>
+#include "servIO.hpp"
 
 class	Parser {
 	private:
