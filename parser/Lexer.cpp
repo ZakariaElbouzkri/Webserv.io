@@ -6,13 +6,13 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 15:19:33 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 21:01:48 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/27 21:06:22 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
 
-Lexer::Lexer( void ) : __good(false), __pos(0) {
+Lexer::Lexer( void ) : __good(false), __pos(1) {
 	this->line = 0;
 	std::ifstream	_conf( CONF_FILE_PATH );
 	__good = false;
