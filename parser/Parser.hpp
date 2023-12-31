@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/27 08:53:29 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 20:55:15 by zel-bouz         ###   ########.fr       */
+/*   Created: 2023/12/29 21:34:21 by zel-bouz          #+#    #+#             */
+/*   Updated: 2023/12/30 06:16:08 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,10 @@ class	Parser {
 		void				__parseHttpDirectives( HttpContext& httpCtx );
 		void				__parseErrorPage( HttpContext& httpCtx );
 		void				__parseLogs( HttpContext& httpCtx );
-		void				__parseMethods( HttpContext& httpCtx );
+		void				__parseMethods( HttpMethods& methods );
 		void				__parseIndexes( HttpContext& httpCtx );
-		void				__parseRedirectPage( RedirectPage& page );
+		void				__parseCgiExt( std::vector<std::string>& cgi );
+		void				__parseRedirectPage( std::pair<int, std::string>& page );
 		std::string			__parseKey( void );
 		ServerContext*		__parseServer( HttpContext& httpCtx );
 		LocationContext*	__parseLocation( HttpContext& httpCtx );
@@ -40,10 +41,18 @@ class	Parser {
 					return "";
 				}
 		};
+		class	FileNotFoundOrEmpty : public std::exception {
+			public:
+				const char * what( void ) const _NOEXCEPT {
+					return "Cofing file can't be open or empty";
+				}
+		};
 		void	parse( MainContext& http );
 		
 		Parser( void );
 		~Parser( void );
-			
 };
 
+// global variables 
+extern	LogStream	logs;
+extern	ErrorPage	erPages;

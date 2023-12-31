@@ -5,107 +5,141 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/26 14:34:01 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 20:24:23 by zel-bouz         ###   ########.fr       */
+/*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
+/*   Updated: 2023/12/31 16:06:35 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
+
 #include "servIO.hpp"
 
-// typedef std::map<int, std::string>	ErrorPage;
-typedef std::vector<std::string>	Indexes;
-typedef std::vector<std::string>	CgiAsign;
-
-class	ErrorPage : public std::map<int, std::string> {
+class	HttpMethods {
 	public:
-		ErrorPage( void ) {};
-		~ErrorPage( void ) {};
+		void	allow( const std::string& method );
+		bool	has( const std::string& method );
+		bool	operator()( const std::string& method );
+
+		HttpMethods( void );
+		~HttpMethods( void );
+
+	private:
+		std::vector<std::string>	__accepted;
+		std::vector<std::string>	__allowed;
 };
 
-class	ListenAddress{
+class	ErrorPage {
 	public:
-		std::string	host;
-		int			port;
-		ListenAddress( void ) {};
-		~ListenAddress( void ) {};
+		ErrorPage( void );
+		~ErrorPage( void );
+		void				add( int code, const std::string& page );
+		const std::string	operator()( int code, const std::string& message );
+		void				insert( std::vector<std::string> codes );
+	private:
+		std::map<int, std::string>	__pages;
 };
 
-class	RedirectPage {
-	public:
-		int			code;
-		std::string	path;
-		
-		RedirectPage( void ) {};
-		~RedirectPage( void ) {};
-};
-
-class	HttpMethods : public std::set<std::string> {
-	public:
-		HttpMethods() {};
-		~HttpMethods() {};
-		bool	has( std::string key ) {
-			if (this->find(key) != this->end())
-				return true;
-			return (false);
-		}
-};
-
+typedef enum { ACCESS, ERROR, END } stream_t;
 class	LogStream {
 	public:
-		std::string	err;
-		std::string	acces;
+		LogStream( void );
+		~LogStream( void );
 
-		LogStream( void ) {};
-		~LogStream( void ) {};
+		void	setAccess( const std::string& acces );
+		void	setError( const std::string& err );
+	
+		void	flush( void );
+		LogStream&	operator<<(stream_t strm);
+
+		template<typename T>
+		LogStream&	operator<<(const T& data) {
+			if ( !__errorStream.is_open() || !__accesStream.is_open() )
+				this->openLogs();
+			if ( __appendToAccess )
+				__tempAccess << data;
+			else
+				__tempError << data;
+			return *this;
+		}			
+	
+	private:
+		std::ofstream		__errorStream;
+		std::ofstream		__accesStream;
+		std::string			__access;
+		std::string			__error;
+		std::stringstream	__tempAccess;
+		std::stringstream	__tempError;
+		bool				__appendToAccess;
+		
+		void	__flushError( void );
+		void	__flushAccess( void );
+		void	openLogs( void );
 };
+
+class	ListenAddress {
+	public:
+		void		setPort( const int& port );
+		void		setHost( const std::string& host );
+	
+		const int&			getPort( void ) const;
+		const std::string&	getHost( void ) const;
+		ListenAddress( void );
+		~ListenAddress( void );
+	private:
+		int			__port;
+		std::string	__host;
+};
+
+
 
 class	HttpContext {
 	public:
-		ErrorPage		errorPages;
-		HttpMethods		allowedMethods;
-		Indexes			indexes;
-		std::string		root;
-		LogStream		logs;
-		int				clientMaxBody;
-		bool			autoIndex;
-		HttpContext( void ) {};
+		LogStream&					logs;
+		ErrorPage&					errorPage;
+		std::vector<std::string>	index;
+		bool						autoIndex;
+		std::string					root;
+		int							maxBody;
+
+		HttpContext( LogStream& lgs, ErrorPage& errPages ) : logs(lgs), errorPage(errPages) {};
 		~HttpContext( void ) {};
+		HttpContext( const HttpContext& rhs ) : logs(rhs.logs), errorPage(rhs.errorPage) {
+			this->index = rhs.index;
+			this->autoIndex = rhs.autoIndex;
+			this->root = rhs.root;
+			this->maxBody = rhs.maxBody;
+		};
+		
 };
 
 class	LocationContext : public HttpContext {
 	public:
-		CgiAsign								cgis;
-		RedirectPage							page;
+		std::pair<int, std::string>				redirect;
+		std::vector<std::string>				cgiExtentions;
+		HttpMethods								allowedMethods;
 		std::map<std::string, LocationContext*>	locations;
-	
-		LocationContext( void ) {};
-		LocationContext( const HttpContext& rhs ) : HttpContext( rhs ) {};
-		~LocationContext( void ) {};
+
+		LocationContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		LocationContext( const HttpContext& http ) : HttpContext( http ) {};
+		~LocationContext( );
 };
 
 class	ServerContext : public HttpContext {
 	public:
-		std::vector<ListenAddress>	listen;
-		std::map<std::string, LocationContext*>	locations;
+		std::vector<ListenAddress>					listenAddrs;
+		HttpMethods									allowedMethods;
+		std::map<std::string, LocationContext*>		locations;
 
-		ServerContext( void ) {};
-		ServerContext( const HttpContext& rhs ) : HttpContext(rhs) {};
-		~ServerContext( void ) { };		
+		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
+		~ServerContext( void );
 };
-
 
 class	MainContext : public HttpContext {
 	public:
-	
 		std::map<std::string, ServerContext*>	servers;
-		
-		typedef	std::map<std::string, ServerContext*>::iterator	servIter;
-		typedef std::map<std::string, LocationContext*>::iterator locIter;
-	
-		ServerContext&	operator[]( const std::string& key){
-			return *servers.at(key);
-		} ////////
-		MainContext( void ) {};
-		~MainContext( void ) {};
+		MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		~MainContext( void );
 };
+
+

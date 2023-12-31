@@ -1,34 +1,25 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   servIO.cpp                                         :+:      :+:    :+:   */
+/*   utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/23 12:40:18 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/31 16:09:48 by zel-bouz         ###   ########.fr       */
+/*   Created: 2023/12/31 13:06:53 by zel-bouz          #+#    #+#             */
+/*   Updated: 2023/12/31 13:26:35 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
 
-LogStream	logs;
-ErrorPage	erPages;
-
-#define ERROR404 "<h1> 404 - Not found </h1>"
-
-/*
-	sdsd / HTTP/1.1
-	.....
-*/
-
-int main() {
-	MainContext main( logs, erPages );
-	try {
-		Parser		parser;
-		parser.parse( main );
-	} catch( std::exception& e) {
-		std::cerr << e.what() << '\n';
-		return ( EXIT_FAILURE );
-	}
+std::string&	strim( std::string str, const std::string& del ) {
+	int start = 0;
+	while ( strchr( del.c_str(), str[start] ) )
+		start++;
+	int	end = str.size() - 1;
+	while ( strrchr( del.c_str(), str[end] ) )
+		end--;
+	if ( end - start + 1 <= 0)
+		return ( str = "" );
+	return  str = str.substr( start, end - start + 1 );		
 }

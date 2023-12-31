@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 21:01:28 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/31 13:36:09 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,14 +17,13 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <sys/select.h>
-#include <vector>
-#include <map>
-#include <set>
 #include <utility>
 #include <fstream>
 #include <sstream>
-
-#define CONF_FILE_PATH "./configuration/servIO.conf"
+#include <algorithm>
+#include <map>
+#include <set>
+#include <vector>
 
 #define RESET "\033[0m"
 #define BLACK "\033[30m"
@@ -35,9 +34,14 @@
 #define MAGENTA "\033[35m"
 #define CYAN "\033[36m"
 #define WHITE "\033[37m"
+#define CONF_FILE_PATH "./configuration/servIO.conf"
 
 #include "Token.hpp"
-#include "MainContext.hpp"
 #include "Lexer.hpp"
+#include "MainContext.hpp"
 #include "Parser.hpp"
 
+
+
+
+std::string&	strim( std::string str, const std::string& del = "\t\v\r\n\f ");

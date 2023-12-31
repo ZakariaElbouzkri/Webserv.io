@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/30 05:50:02 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/31 16:06:56 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 
 HttpMethods::HttpMethods( void ){
 	std::string accMethods[] = {
-		"POST", "DELETE", "GET", "UPDATE", // ....
+		"POST", "DELETE", "GET", // ....
 	};
 	size_t		size = sizeof(accMethods) / sizeof(accMethods[0]);
 	__accepted = std::vector<std::string>(accMethods, accMethods + size);
@@ -82,36 +82,39 @@ void	ErrorPage::insert( std::vector<std::string> codes ) {
 /* LogStream class */
 
 LogStream::LogStream( void ) {
-	__access = "access_log";
-	__error = "error_log";
+	__access = "./logs/access_log";
+	__error = "./logs/error_log";
 	__appendToAccess = true;
 }
 
 
 void	LogStream::openLogs( void ) {
-	if ( !__error.empty() )
+	if ( !__errorStream.is_open() )
 		__errorStream.open( __error.c_str(), std::ios::out | std::ios::app );
-	if ( !__access.empty() )
+	if ( !__accesStream.is_open() )
 		__accesStream.open( __access.c_str(), std::ios::out | std::ios::app );
 
-	if ( !__errorStream.is_open() )
+	if ( !__errorStream.is_open() && !__appendToAccess )
 		std::cerr << MAGENTA << "[ warning ]: " << RESET << "open " << __error << " for logging errors" << std::endl;
-	if ( !__accesStream.is_open() )
+	if ( !__accesStream.is_open() && __appendToAccess )
 		std::cerr << MAGENTA << "[ warning ]: " << RESET << "open " << __access << " for logging access" << std::endl;
 }
 
 LogStream::~LogStream( void ) {
+	this->flush();
 	__accesStream.close();
 	__errorStream.close();
 }
 
 
 void	LogStream::setAccess( const std::string& acces ) {
-	__access = acces;
+	if ( strim( acces ).size() > 0 )
+		__access = acces;
 }
 
 void	LogStream::setError( const std::string& err ) {
-	__error = err;
+	if ( strim( err ).size() > 0 )
+		__error = err;
 }
 
 void	LogStream::__flushAccess( void ) {

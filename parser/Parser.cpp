@@ -6,65 +6,59 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 11:56:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/27 21:02:25 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2023/12/30 06:16:23 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
 
-Parser::Parser( void ) {
+Parser::Parser( void ) : __currTok( Token::_EOF ) {
+	if ( !__lexer.good() ) {
+		throw FileNotFoundOrEmpty();
+	}
 	__currTok = __lexer.getNextToken();
 }
 
 Parser::~Parser( void ) {
 }
 
-bool	checkStatusCode( std::string statusCode, int& ret ) {
-	if (statusCode.size() != 3) return false;
-	if (isdigit(statusCode[0]) && isdigit(statusCode[1]) && isdigit(statusCode[2])) {
-		ret = atoi(statusCode.c_str());
-		return (ret >= 100 && ret <= 599) ? true : false;
-	}
-	return false;
-}
-
 void	Parser::__parseErrorPage( HttpContext& httpCtx ) {
-	__advance( Token::ERROR_PAGE );
-	// TODO: implemet a function like stoi and checknumber if is valid;
-	int code;
-	if (checkStatusCode( __currTok.getData(), code ) == false) {
-		__log << "invalid status code '" << __currTok.getData(); __logError();
+	std::vector<std::string>	codes;
+	__advance( Token::ERR_PAGE );
+	while ( __currTok == Token::WORD ) {
+		codes.push_back( __currTok.getData() );
+		__advance( Token::WORD );
 	}
-	__advance( Token::WORD );
-	httpCtx.errorPages[code] = __currTok.getData();
-	__advance( Token::WORD );
+	if ( codes.size() < 2)
+		__advance( Token::WORD );
+	httpCtx.errorPage.insert( codes );
 }
 
 void	Parser::__parseLogs( HttpContext& httpCtx ) {
-	if ( __currTok == Token::ACCESS_LOG ) {
-		__advance( Token::ACCESS_LOG );
-		httpCtx.logs.acces = __currTok.getData();
-	} else	if ( __currTok == Token::ERROR_LOG ) {
-		__advance( Token::ERROR_LOG );
-		httpCtx.logs.err = __currTok.getData();
+	if ( __currTok == Token::ACC_LOG ) {
+		__advance( Token::ACC_LOG );
+		httpCtx.logs.setAccess( __currTok.getData() );
+	} else	if ( __currTok == Token::ERR_LOG) {
+		__advance( Token::ERR_LOG );
+		httpCtx.logs.setError( __currTok.getData() );
 	} else  if ( __currTok == Token::ROOT ) {
 		__advance( Token::ROOT );
 		httpCtx.root = __currTok.getData();
 	} else {
 		__advance( Token::MAX_BODY );
-		httpCtx.clientMaxBody = atoi( __currTok.getData().c_str() );
+		httpCtx.maxBody = atoi( __currTok.getData().c_str() );
 	}
 	__advance( Token::WORD );
 }
 
-void	Parser::__parseMethods( HttpContext& httpCtx ) {
+void	Parser::__parseMethods( HttpMethods& methods ) {
 	__advance( Token::ALLOW );
 	if ( __currTok != Token::WORD ) {
-		__log << "exected allow methods found " << __currTok;
+		__log << "expected allow methods found " << __currTok;
 		__logError();
 	}
 	while ( __currTok == Token::WORD ) {
-		httpCtx.allowedMethods.insert( __currTok.getData() );
+		methods.allow( __currTok.getData() );
 		__advance( Token::WORD );
 	}
 }
@@ -75,11 +69,11 @@ void	Parser::__parseIndexes( HttpContext& httpCtx ) {
 		if ( __currTok != Token::WORD )
 			__advance( Token::WORD );
 		while ( __currTok == Token::WORD ) {
-			httpCtx.indexes.push_back( __currTok.getData() );
+			httpCtx.index.push_back( __currTok.getData() );
 			__advance( Token::WORD );
 		}
 	} else {
-		__advance( Token::AUTO_INDEX );
+		__advance( Token::AUTOINDEX );
 		if ( __currTok.getData() == "on" ) // may be check if data in ["on", "off"] and throw err;
 			httpCtx.autoIndex = true;
 		__advance( Token::WORD );
@@ -88,16 +82,14 @@ void	Parser::__parseIndexes( HttpContext& httpCtx ) {
 
 void	Parser::__parseHttpDirectives( HttpContext& httpCtx ) {
 	switch ( __currTok.getType() ) {
-		case Token::ERROR_PAGE:	
+		case Token::ERR_PAGE:	
 			__parseErrorPage( httpCtx ); break;
-		case Token::ACCESS_LOG:
+		case Token::ERR_LOG:
 		case Token::ROOT:
 		case Token::MAX_BODY:
-		case Token::ERROR_LOG:
+		case Token::ACC_LOG:
 			__parseLogs( httpCtx ); break;
-		case Token::ALLOW:
-			__parseMethods( httpCtx ); break;
-		case Token::AUTO_INDEX:
+		case Token::AUTOINDEX:
 		case Token::INDEX:
 			__parseIndexes( httpCtx ); break;
 		default:
@@ -108,7 +100,7 @@ void	Parser::__parseHttpDirectives( HttpContext& httpCtx ) {
 
 
 std::string	Parser::__parseKey( void ) {
-	__advance( Token::OPEN_SQURE );
+	__advance( Token::OPEN_SQUARE );
 
 	std::string	key = __currTok.getData();
 
@@ -120,51 +112,67 @@ std::string	Parser::__parseKey( void ) {
 
 
 ListenAddress	Parser::__parseListenAddr( void ) {
-	ListenAddress	adr;
+	ListenAddress		adr;
+	std::stringstream	ss;
+	std::string			host;
+	int					port;
+
 	__advance( Token::LISTEN );
-	// TODO: implemet a function like stoi and checknumber if is valid;
-	adr.port = atoi( __currTok.getData().c_str() );
+	size_t	pos = __currTok.getData().find(':');
+	if ( pos != std::string::npos ) {
+		ss << __currTok.getData().substr( 0, pos );
+		ss << " " << __currTok.getData().substr( pos + 1);
+		ss >> host;
+		ss >> port;
+	} else {
+		ss << __currTok.getData();
+		ss >> port;
+	}
 	__advance( Token::WORD );
+	adr.setHost( host );
+	adr.setPort( port );
 	return adr;
 }
 
 
-void	Parser::__parseRedirectPage( RedirectPage& page ) {
+void	Parser::__parseRedirectPage( std::pair<int, std::string>& page ) {
+	std::stringstream	ss;
 	__advance( Token::RETURN );
-	if (checkStatusCode( __currTok.getData(), page.code ) == false) {
-		__log << "invalid status code '" << __currTok.getData();
-		__logError();
+	ss << __currTok.getData();
+	__advance( Token::WORD );
+	ss << __currTok.getData();
+	__advance( Token::WORD );
+	
+	ss >> page.first;
+	ss >> page.second;
+}
+
+void	Parser::__parseCgiExt( std::vector<std::string>& cgi ) {
+	__advance( Token::CGI );
+	cgi.push_back( __currTok.getData() );
+	__advance( Token::WORD );
+	while ( __currTok == Token::WORD ) {
+		cgi.push_back( __currTok.getData() );
+		__advance( Token::WORD );
 	}
-	__advance( Token::WORD );
-	page.path = __currTok.getData();
-	__advance( Token::WORD );
 }
 
 LocationContext*	Parser::__parseLocation( HttpContext& httpCtx ) {
 	__advance( Token::OPEN_CURLY );
 	LocationContext* route = new LocationContext( httpCtx );
 
-	while ( __currTok != Token::LOCATOIN && __currTok != Token::CLOSE_CURLY ) {
-		
-		if ( __currTok == Token::RETURN )
-			__parseRedirectPage( route->page );
-		else if ( __currTok == Token::CGI_ASSIGN ) {
-			__advance( Token::CGI_ASSIGN );
-			if ( __currTok != Token::WORD ) {
-				__log << "expected cgi extentions, but found " << __currTok; __logError();
-			}
-			while ( __currTok == Token::WORD ) {
-				__advance( Token::WORD );
-				route->cgis.push_back( __currTok.getData() );
-			}
-		} else {
-			__parseHttpDirectives( *route );
+	while ( __currTok != Token::LOCATION && __currTok != Token::CLOSE_CURLY ) {
+		switch ( __currTok.getType() ) {
+			case Token::RETURN: __parseRedirectPage( route->redirect );		break;
+			case Token::ALLOW:	__parseMethods( route->allowedMethods );	break;
+			case Token::CGI:	__parseCgiExt( route->cgiExtentions );		break;
+			default:			__parseHttpDirectives( *route );			break;
 		}
 		__advance( Token::SIMICOLEN );
 	}
 	
-	while ( __currTok == Token::LOCATOIN ) {
-		__advance( Token::LOCATOIN );
+	while ( __currTok == Token::LOCATION ) {
+		__advance( Token::LOCATION );
 		std::string	locationPath = __parseKey();
 		route->locations[locationPath] = __parseLocation( *route );
 	}
@@ -176,16 +184,16 @@ ServerContext*	Parser::__parseServer( HttpContext& httpCtx ) {
 	__advance( Token::OPEN_CURLY );
 
 	ServerContext* serv = new ServerContext( httpCtx );
-	while ( __currTok != Token::LOCATOIN && __currTok != Token::CLOSE_CURLY ) {
-		if ( __currTok == Token::LISTEN )
-			serv->listen.push_back( __parseListenAddr( ) );
-		else {
-			__parseHttpDirectives( *serv );
+	while ( __currTok != Token::LOCATION && __currTok != Token::CLOSE_CURLY ) {
+		switch ( __currTok.getType() ) {
+			case Token::LISTEN: serv->listenAddrs.push_back( __parseListenAddr( ) ); break;
+			case Token::ALLOW:	__parseMethods( serv->allowedMethods ); break;;
+			default:	__parseHttpDirectives( *serv ); break;	
 		}
 		__advance( Token::SIMICOLEN );
 	}
-	while ( __currTok == Token::LOCATOIN ) {
-		__advance( Token::LOCATOIN );
+	while ( __currTok == Token::LOCATION ) {
+		__advance( Token::LOCATION );
 		std::string	locationPath = __parseKey();
 		serv->locations[locationPath] = __parseLocation( *serv );
 	}
@@ -204,7 +212,7 @@ void	Parser::parse( MainContext& http ) {
 	while ( __currTok == Token::SERVER ) {
 		__advance( Token::SERVER );
 		std::string	serverName = __parseKey();
-		MainContext::servIter it = http.servers.find(serverName);
+		std::map<std::string, ServerContext*>::iterator it = http.servers.find(serverName);
 		if ( it != http.servers.end()) {
 			__log << "duplicated servername: " << serverName;
 			__logError();
@@ -212,7 +220,7 @@ void	Parser::parse( MainContext& http ) {
 		http.servers[serverName] = __parseServer( http );
 	}
 	__advance( Token::CLOSE_CURLY );
-	__advance( Token::END_OF_FILE );
+	__advance( Token::_EOF );
 }
 
 void	Parser::__logError( void ) {
@@ -227,6 +235,6 @@ void	Parser::__advance( Token::token_t tok ) {
 		__log << "expected " << Token(tok) << " but found " <<  __currTok;
 		__logError();
 	}
-	if ( __currTok != Token::END_OF_FILE )
+	if ( __currTok != Token::_EOF )
 		__currTok = __lexer.getNextToken();
 }
