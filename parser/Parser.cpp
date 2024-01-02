@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 11:56:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/30 06:16:23 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/02 21:21:21 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,22 +31,43 @@ void	Parser::__parseErrorPage( HttpContext& httpCtx ) {
 	}
 	if ( codes.size() < 2)
 		__advance( Token::WORD );
-	httpCtx.errorPage.insert( codes );
+	for ( size_t i = 0; i < codes.size() - 1; i++ ) {
+		std::stringstream	ss;
+		ss << codes[i];
+		int	code; ss >> code;
+		if ( ss.eof() != true || code < 100 || code > 599 ) {
+			std::cerr << MAGENTA << "[ warning ]: " << RESET << "invalid error code: ";
+			std::cerr << codes[i] << " at line: " << __lexer.line << '\n';
+		}
+		else
+			httpCtx.errorPage.add( code, codes.back() );
+	}
 }
 
 void	Parser::__parseLogs( HttpContext& httpCtx ) {
-	if ( __currTok == Token::ACC_LOG ) {
-		__advance( Token::ACC_LOG );
-		httpCtx.logs.setAccess( __currTok.getData() );
-	} else	if ( __currTok == Token::ERR_LOG) {
-		__advance( Token::ERR_LOG );
-		httpCtx.logs.setError( __currTok.getData() );
-	} else  if ( __currTok == Token::ROOT ) {
-		__advance( Token::ROOT );
-		httpCtx.root = __currTok.getData();
-	} else {
-		__advance( Token::MAX_BODY );
-		httpCtx.maxBody = atoi( __currTok.getData().c_str() );
+	switch ( __currTok.getType() ) {
+		case Token::ACC_LOG:
+			__advance( Token::ACC_LOG );
+			httpCtx.logs.setAccess( __currTok.getData() );
+			break;
+		case Token::ERR_LOG:
+			__advance( Token::ERR_LOG );
+			httpCtx.logs.setError( __currTok.getData() );
+			break;
+		case Token::ROOT:
+			__advance( Token::ROOT );
+			httpCtx.root = __currTok.getData();
+			break;
+		default:
+			__advance( Token::MAX_BODY );
+			std::stringstream	ss;
+			ss << __currTok.getData();
+			ss >> httpCtx.maxBody;
+			if ( ss.eof() != true || httpCtx.maxBody < 0 ) {
+				__log << "invalid max body size number " << ss.str();
+				__logError();
+			}
+			break;
 	}
 	__advance( Token::WORD );
 }
@@ -74,7 +95,11 @@ void	Parser::__parseIndexes( HttpContext& httpCtx ) {
 		}
 	} else {
 		__advance( Token::AUTOINDEX );
-		if ( __currTok.getData() == "on" ) // may be check if data in ["on", "off"] and throw err;
+		if ( __currTok.getData() != "off" && __currTok.getData() != "on" ) {
+			__log << "expected a value [on or off], found " << __currTok;
+			__logError();
+		}
+		if ( __currTok.getData() == "on" )
 			httpCtx.autoIndex = true;
 		__advance( Token::WORD );
 	}
@@ -101,37 +126,24 @@ void	Parser::__parseHttpDirectives( HttpContext& httpCtx ) {
 
 std::string	Parser::__parseKey( void ) {
 	__advance( Token::OPEN_SQUARE );
-
 	std::string	key = __currTok.getData();
-
 	__advance( Token::WORD );
-
 	__advance( Token::CLOSE_SQUARE );
 	return key;
 }
 
 
 ListenAddress	Parser::__parseListenAddr( void ) {
-	ListenAddress		adr;
-	std::stringstream	ss;
-	std::string			host;
-	int					port;
-
 	__advance( Token::LISTEN );
-	size_t	pos = __currTok.getData().find(':');
-	if ( pos != std::string::npos ) {
-		ss << __currTok.getData().substr( 0, pos );
-		ss << " " << __currTok.getData().substr( pos + 1);
-		ss >> host;
-		ss >> port;
-	} else {
-		ss << __currTok.getData();
-		ss >> port;
-	}
+	std::stringstream	ss;
+	ss << __currTok.getData();
 	__advance( Token::WORD );
-	adr.setHost( host );
-	adr.setPort( port );
-	return adr;
+	int port; ss >> port;
+	if ( ss.eof() != true || port <= 0 || port > 65535 ) {
+		__log << "invalid port number: " << ss.str();
+		__logError();
+	}
+	return ListenAddress( port );
 }
 
 
@@ -139,11 +151,14 @@ void	Parser::__parseRedirectPage( std::pair<int, std::string>& page ) {
 	std::stringstream	ss;
 	__advance( Token::RETURN );
 	ss << __currTok.getData();
+	ss >> page.first;
 	__advance( Token::WORD );
+	if (ss.eof() != true || page.first < 300 || page.first > 399 ) {
+		__log << "invalid redirect code: " << ss.str();
+		__logError();
+	}
 	ss << __currTok.getData();
 	__advance( Token::WORD );
-	
-	ss >> page.first;
 	ss >> page.second;
 }
 
@@ -197,6 +212,15 @@ ServerContext*	Parser::__parseServer( HttpContext& httpCtx ) {
 		std::string	locationPath = __parseKey();
 		serv->locations[locationPath] = __parseLocation( *serv );
 	}
+	if ( serv->listenAddrs.size() == 0 ) {
+		__log << "server block must contain at least one listen directive";
+		__logError( false );
+	}
+	if ( serv->root.size() == 0 ) {
+		__log << "root directive must be specified in [server] block .\n";
+		__log << "you can also specify one in [http] block to be used as default root";
+		__logError( false );
+	}
 	__advance( Token::CLOSE_CURLY );
 	return serv;
 }
@@ -208,7 +232,6 @@ void	Parser::parse( MainContext& http ) {
 		__parseHttpDirectives( http );
 		__advance( Token::SIMICOLEN );
 	}
-
 	while ( __currTok == Token::SERVER ) {
 		__advance( Token::SERVER );
 		std::string	serverName = __parseKey();
@@ -219,14 +242,21 @@ void	Parser::parse( MainContext& http ) {
 		}
 		http.servers[serverName] = __parseServer( http );
 	}
+	if ( http.servers.size() == 0) {
+		__log << "config file must contain at least one server block";
+		__logError( false );
+	}
 	__advance( Token::CLOSE_CURLY );
 	__advance( Token::_EOF );
 }
 
-void	Parser::__logError( void ) {
+void	Parser::__logError( bool logLine ) {
 	std::string	err;
 	std::cerr << "webserv: configFile:\n" ;
-	std::cerr << "\tat line: " << CYAN << __lexer.line << RESET << ' ' << __log.str();
+	if ( logLine ) {
+		std::cerr << "\tat line: " << CYAN << __lexer.line << RESET << ' ';
+	}
+	std::cerr << __log.str();
 	throw	SyntaxError();
 }
 

@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:34:21 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/30 06:16:08 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/02 20:33:32 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ class	Parser {
 		ServerContext*		__parseServer( HttpContext& httpCtx );
 		LocationContext*	__parseLocation( HttpContext& httpCtx );
 		ListenAddress		__parseListenAddr( void );
-		void				__logError( void );
+		void				__logError( bool logLine = true );
 		
 	public:
 		class	SyntaxError : public std::exception {
