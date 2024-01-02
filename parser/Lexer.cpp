@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:58:33 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/30 05:59:08 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/02 21:06:20 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ Lexer::Lexer( void ) : line(1), __good(false) {
 	__good = true;
 	std::string	keys[14] = {
 		"http", "server", "location", "error_page", "error_log", "access_log", "allow", 
-		"client_max_body_size", "index", "autoindex", "return", "listen", "root", "cgi_assign"
+		"client_max_body_size", "index", "autoindex", "redirect", "listen", "root", "cgi_assign"
 	};
 	Token::token_t	vals[14] = {
 		Token::HTTP, Token::SERVER, Token::LOCATION, Token::ERR_PAGE, Token::ERR_LOG, 
@@ -57,8 +57,10 @@ Token	Lexer::__parseWord( ) {
 			result += __curr;
 			__advance();
 		}
-		if ( __curr != '\"' )
-			return Token::_EOF;
+		if ( __curr != '\"' ) return Token::_EOF;
+		__advance();
+		result = strim( result );
+		if ( result.empty() ) return getNextToken();
 		return result;
 	}
 	while ( __curr != '\0' && !strchr( "#{}[];\t\v\r\n ", __curr ) ) {
@@ -70,6 +72,7 @@ Token	Lexer::__parseWord( ) {
 		return it->second;
 	return result;
 }
+
 
 
 Token	Lexer::getNextToken( void ) {
