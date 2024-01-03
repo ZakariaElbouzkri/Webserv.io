@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:42:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/02 20:49:17 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 19:16:20 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,10 +40,10 @@ const std::string&	Token::getData( void ) const {
 
 std::ostream&	operator<<( std::ostream& os, const Token& rhs ) {
 	std::string	keys[21] = {
-		"value " + rhs.__data  , "{", "}", "[", "]", ";", "http", "server", "location",
+		"word " + rhs.__data  , "{", "}", "[", "]", ";", "http", "server", "location",
 		"error_page", "error_log", "access_log", "allow", "client_max_body_size",
 		"index", "autoindex", "redirect", "listen", "root", "cgi", "_EOF",
 	};
-	os << keys[(int)rhs.__type] << " " << rhs.__data << (rhs.isKey() ? "keyword" : "" );
+	os << keys[(int)rhs.__type] << (rhs.isKey() ? " keyword" : "" );
 	return os;
 }
