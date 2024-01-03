@@ -6,7 +6,7 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/01 17:37:48 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/02 10:00:59 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <fcntl.h>
+#include <cstring>
 #include <sys/select.h>
 #include <utility>
 #include <fstream>

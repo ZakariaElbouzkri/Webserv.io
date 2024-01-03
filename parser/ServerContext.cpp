@@ -6,22 +6,41 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/31 20:21:38 by nakebli           #+#    #+#             */
-/*   Updated: 2024/01/01 17:52:19 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/02 14:35:51 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ServerContext.hpp"
 
 
+
+
+
+// ------------------------------ Socket ------------------------------ //
+
 Socket::~Socket( void ) {
     if ( __good )
         ::close( __fd );
+}
+
+Socket::Socket( int domain = AF_INET, int type = SOCK_STREAM, int protocol = 0) : __good(true) {
+    __fd = socket( domain, type, protocol );
+    if ( __fd < 0 ) {
+        logs << ERROR << "Error creating socket" << END;
+        __good = false;
+    }
+    fcntl( __fd, F_SETFL, O_NONBLOCK );            
 }
 
 void    Socket::bind( const sockaddr *addr, socklen_t addrlen ) {
     if ( ::bind( __fd, addr, addrlen ) < 0 ) {
         logs << ERROR << "Error binding socket" << END;
         __good = false;
+    }
+    else
+    {
+        logs << ACCESS << "Socket binded" << END;
+        __good = true;
     }
 }
 
@@ -30,6 +49,11 @@ void    Socket::listen( int backlog ) {
         logs << ERROR << "Error listening" << END;
         __good = false;
     }
+    else
+    {
+        logs << ACCESS << "Socket listening" << END;
+        __good = true;
+    }
 }
 
 int     Socket::accept( sockaddr *addr, socklen_t *addrlen ) {
@@ -37,6 +61,11 @@ int     Socket::accept( sockaddr *addr, socklen_t *addrlen ) {
     if ( fd < 0 ) {
         logs << ERROR << "Error accepting connection" << END;
         __good = false;
+    }
+    else
+    {
+        logs << ACCESS << "Connection accepted" << END;
+        __good = true;
     }
     return fd;
 }
@@ -50,31 +79,45 @@ int     Socket::getFd( void ) const {
     return __fd;
 }
 
+
+
+
+// ------------------------------ ServerContext ------------------------------ //
+
 ServerContext::~ServerContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;
 	it = this->locations.begin();
 	for ( ; it != this->locations.end(); it++ ) {
 		delete it->second;
 	}
+    serverSocket.close();
 }
 
-void	ServerContext::bindsocket( void ) {
-    struct sockaddr_in serv_addr;
-    int opt = 1;
+void ServerContext::bindsocket() {
+    for (std::vector<ListenAddress>::const_iterator it = listenAddrs.begin(); it != listenAddrs.end(); it++) {
+        sockaddr_in addr;
+        std::memset(&addr, 0, sizeof(addr));
 
-    if (setsockopt(serverSocket.getFd(), SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        std::cerr << "setsockopt" << std::endl;
-        exit(1);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(8080);
+
+        if (inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) <= 0) {
+            logs << ERROR << "Invalid address: " << "127.0.0.1" << END;
+            continue ;
+        }
+
+        serverSocket.bind(reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+        serverSocket.listen(2); // Adjust the backlog value as needed
     }
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(this->listenAddrs[0].getPort());
-    if (bind(serverSocket.getFd(), (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "Error binding socket" << std::endl;
-        exit(1);
+}
+
+int    ServerContext::init_listenaddrs( void ) {
+    for ( int i = 8000;  i < 8003;  i++ ) {
+        
+        ListenAddress *it = new ListenAddress();
+        it->setPort(i);
+        it->setHost("127.0.0.1");
+        this->listenAddrs.push_back(*it);
     }
-    if (listen(serverSocket.getFd(), 10) < 0) {
-        std::cerr << "Error listening" << std::endl;
-        exit(1);
-    }
+    return 1;
 }
