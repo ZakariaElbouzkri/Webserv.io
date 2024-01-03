@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:34:21 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 19:06:25 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:22:42 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ class	Parser {
 		void				__parseRedirectPage( std::pair<int, std::string>& page );
 		std::string			__parseKey( void );
 		ServerContext*		__parseServer( HttpContext& httpCtx );
-		LocationContext*	__parseLocation( HttpContext& httpCtx );
+		LocationContext*	__parseLocation( HttpContext& httpCtx, const std::string& path, ServerContext& parent );
 		ListenAddress		__parseListenAddr( void );
 		// void				__logError( bool logLine = true );
 		

@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 11:56:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 19:17:03 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:35:23 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -165,7 +165,7 @@ void	Parser::__parseCgiExt( std::vector<std::string>& cgi ) {
 	}
 }
 
-LocationContext*	Parser::__parseLocation( HttpContext& httpCtx ) {
+LocationContext*	Parser::__parseLocation( HttpContext& httpCtx, const std::string& path, ServerContext& parent ) {
 	__advance( Token::OPEN_CURLY );
 	LocationContext* route = new LocationContext( httpCtx );
 
@@ -182,7 +182,12 @@ LocationContext*	Parser::__parseLocation( HttpContext& httpCtx ) {
 	while ( __currTok == Token::LOCATION ) {
 		__advance( Token::LOCATION );
 		std::string	locationPath = __parseKey();
-		route->locations[locationPath] = __parseLocation( *route );
+		locationPath = normPath(  path + locationPath );
+		if ( parent.has( locationPath ) ) {
+			__log << "at line: " << __lexer.line << " location '" << locationPath << "' already exist";
+			throw SyntaxError( __log );
+		}
+		route->locations[locationPath] = __parseLocation( *route, locationPath, parent );
 	}
 	__advance( Token::CLOSE_CURLY );
 	return route;
@@ -203,7 +208,12 @@ ServerContext*	Parser::__parseServer( HttpContext& httpCtx ) {
 	while ( __currTok == Token::LOCATION ) {
 		__advance( Token::LOCATION );
 		std::string	locationPath = __parseKey();
-		serv->locations[locationPath] = __parseLocation( *serv );
+		locationPath = normPath( locationPath );
+		if ( serv->has( locationPath ) ) {
+			__log << "at line: " << __lexer.line << " location '" << locationPath << "' already exist";
+			throw SyntaxError( __log );
+		}
+		serv->locations[locationPath] = __parseLocation( *serv, locationPath, *serv );
 	}
 	if ( serv->listenAddrs.size() == 0 ) {
 		__log << "server block must contain at least one listen directive";
