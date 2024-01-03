@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/31 16:06:35 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 19:20:05 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,6 @@ class	ErrorPage {
 		~ErrorPage( void );
 		void				add( int code, const std::string& page );
 		const std::string	operator()( int code, const std::string& message );
-		void				insert( std::vector<std::string> codes );
 	private:
 		std::map<int, std::string>	__pages;
 };
@@ -77,17 +76,15 @@ class	LogStream {
 };
 
 class	ListenAddress {
-	public:
-		void		setPort( const int& port );
-		void		setHost( const std::string& host );
-	
-		const int&			getPort( void ) const;
-		const std::string&	getHost( void ) const;
-		ListenAddress( void );
-		~ListenAddress( void );
 	private:
-		int			__port;
-		std::string	__host;
+		sockaddr_in	__addr;
+		socklen_t	__len;
+	public:
+		ListenAddress( int port = 54000, int family = AF_INET, in_addr_t addr = INADDR_ANY );
+		~ListenAddress( void );
+		void	Length( socklen_t len );
+		sockaddr_in&	Addr( void );
+		socklen_t&		Len( void );
 };
 
 

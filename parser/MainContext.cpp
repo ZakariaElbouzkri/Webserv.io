@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/31 16:06:56 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 19:18:21 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,15 +69,6 @@ const	std::string	ErrorPage::operator()( int code, const std::string& defaultPag
 	return defaultPage;
 }
 
-void	ErrorPage::insert( std::vector<std::string> codes ) {
-	std::string	page = codes.back();
-	for ( size_t i = 0; i < codes.size() - 1; i++ ) {
-		std::stringstream	ss;
-		ss << codes[i];
-		int code; ss >> code;
-		this->add( code, page );
-	}
-}
 
 /* LogStream class */
 
@@ -158,27 +149,30 @@ LogStream&	LogStream::operator<<( stream_t strm ) {
 }
 
 
-ListenAddress::ListenAddress( void ) {
+/* Address */
+
+ListenAddress::ListenAddress( int port, int family, in_addr_t addr) {
+	__addr.sin_family = family;
+	__addr.sin_port = htons( port );
+	__addr.sin_addr.s_addr = addr;
+	__len = sizeof( __addr );
 }
 
 ListenAddress::~ListenAddress( void ) {
 }
 
-const int&	ListenAddress::getPort( void ) const {
-	return __port;
+void	ListenAddress::Length( socklen_t len ) {
+	__len = len;
 }
 
-const std::string&	ListenAddress::getHost( void ) const {
-	return __host;
+socklen_t&	ListenAddress::Len( void ) {
+	return __len;
 }
 
-void	ListenAddress::setPort( const int& port ) {
-	__port = port;
+sockaddr_in&	ListenAddress::Addr( void ) {
+	return __addr;
 }
 
-void	ListenAddress::setHost( const std::string& host ) {
-	__host = host;
-}
 
 LocationContext::~LocationContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;
