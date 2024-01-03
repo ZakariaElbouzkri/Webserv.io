@@ -6,11 +6,12 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 11:56:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/02 21:21:21 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 19:17:03 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
+
 
 Parser::Parser( void ) : __currTok( Token::_EOF ) {
 	if ( !__lexer.good() ) {
@@ -24,6 +25,7 @@ Parser::~Parser( void ) {
 
 void	Parser::__parseErrorPage( HttpContext& httpCtx ) {
 	std::vector<std::string>	codes;
+
 	__advance( Token::ERR_PAGE );
 	while ( __currTok == Token::WORD ) {
 		codes.push_back( __currTok.getData() );
@@ -31,16 +33,14 @@ void	Parser::__parseErrorPage( HttpContext& httpCtx ) {
 	}
 	if ( codes.size() < 2)
 		__advance( Token::WORD );
+
 	for ( size_t i = 0; i < codes.size() - 1; i++ ) {
-		std::stringstream	ss;
-		ss << codes[i];
-		int	code; ss >> code;
-		if ( ss.eof() != true || code < 100 || code > 599 ) {
-			std::cerr << MAGENTA << "[ warning ]: " << RESET << "invalid error code: ";
-			std::cerr << codes[i] << " at line: " << __lexer.line << '\n';
+		int	code;
+		if ( !ft_stoi( codes[i], code ) || code < 100 || code > 599 ) {
+			__log << "at line: " << __lexer.line << " invalid error code: " << codes[i];
+			throw SyntaxError( __log );
 		}
-		else
-			httpCtx.errorPage.add( code, codes.back() );
+		httpCtx.errorPage.add( code, codes.back() );
 	}
 }
 
@@ -60,12 +60,9 @@ void	Parser::__parseLogs( HttpContext& httpCtx ) {
 			break;
 		default:
 			__advance( Token::MAX_BODY );
-			std::stringstream	ss;
-			ss << __currTok.getData();
-			ss >> httpCtx.maxBody;
-			if ( ss.eof() != true || httpCtx.maxBody < 0 ) {
-				__log << "invalid max body size number " << ss.str();
-				__logError();
+			if ( !ft_stoi( __currTok.getData(), httpCtx.maxBody ) || httpCtx.maxBody <= 0 ) {
+				__log << "at line " << __lexer.line << " invalid max body size number " << __currTok.getData();
+				throw SyntaxError( __log );
 			}
 			break;
 	}
@@ -74,9 +71,10 @@ void	Parser::__parseLogs( HttpContext& httpCtx ) {
 
 void	Parser::__parseMethods( HttpMethods& methods ) {
 	__advance( Token::ALLOW );
+	
 	if ( __currTok != Token::WORD ) {
-		__log << "expected allow methods found " << __currTok;
-		__logError();
+		__log << "at line: " << __lexer.line << " expected method name found " << __currTok;
+		throw SyntaxError( __log );
 	}
 	while ( __currTok == Token::WORD ) {
 		methods.allow( __currTok.getData() );
@@ -96,11 +94,10 @@ void	Parser::__parseIndexes( HttpContext& httpCtx ) {
 	} else {
 		__advance( Token::AUTOINDEX );
 		if ( __currTok.getData() != "off" && __currTok.getData() != "on" ) {
-			__log << "expected a value [on or off], found " << __currTok;
-			__logError();
+			__log << "at line " << __lexer.line << " expected value 'on' or 'off' found " << __currTok;
+			throw SyntaxError( __log );
 		}
-		if ( __currTok.getData() == "on" )
-			httpCtx.autoIndex = true;
+		httpCtx.autoIndex = ( __currTok.getData() == "on" );
 		__advance( Token::WORD );
 	}
 }
@@ -108,7 +105,8 @@ void	Parser::__parseIndexes( HttpContext& httpCtx ) {
 void	Parser::__parseHttpDirectives( HttpContext& httpCtx ) {
 	switch ( __currTok.getType() ) {
 		case Token::ERR_PAGE:	
-			__parseErrorPage( httpCtx ); break;
+			__parseErrorPage( httpCtx );
+			break;
 		case Token::ERR_LOG:
 		case Token::ROOT:
 		case Token::MAX_BODY:
@@ -118,8 +116,8 @@ void	Parser::__parseHttpDirectives( HttpContext& httpCtx ) {
 		case Token::INDEX:
 			__parseIndexes( httpCtx ); break;
 		default:
-			__log << "directive " << __currTok << " not in it's context";
-			__logError();
+			__log << "unexpected token '" << __currTok << "' at line: " << __lexer.line;
+			throw SyntaxError( __log );
 	}
 }
 
@@ -134,32 +132,27 @@ std::string	Parser::__parseKey( void ) {
 
 
 ListenAddress	Parser::__parseListenAddr( void ) {
+	int	port;
+
 	__advance( Token::LISTEN );
-	std::stringstream	ss;
-	ss << __currTok.getData();
-	__advance( Token::WORD );
-	int port; ss >> port;
-	if ( ss.eof() != true || port <= 0 || port > 65535 ) {
-		__log << "invalid port number: " << ss.str();
-		__logError();
+	if ( !ft_stoi( __currTok.getData(), port ) || port <= 0 || port > 65535 ) {
+		__log << "at line: " << __lexer.line << " invalid port number: " << __currTok.getData();
+		throw SyntaxError( __log );
 	}
+	__advance( Token::WORD );
 	return ListenAddress( port );
 }
 
 
 void	Parser::__parseRedirectPage( std::pair<int, std::string>& page ) {
-	std::stringstream	ss;
 	__advance( Token::RETURN );
-	ss << __currTok.getData();
-	ss >> page.first;
-	__advance( Token::WORD );
-	if (ss.eof() != true || page.first < 300 || page.first > 399 ) {
-		__log << "invalid redirect code: " << ss.str();
-		__logError();
+	if ( ft_stoi( __currTok.getData(), page.first ) == false ) {
+		__log << "at line: " << __lexer.line << " invalid return code: " << __currTok.getData();
+		throw SyntaxError( __log );
 	}
-	ss << __currTok.getData();
 	__advance( Token::WORD );
-	ss >> page.second;
+	page.second = __currTok.getData();
+	__advance( Token::WORD );
 }
 
 void	Parser::__parseCgiExt( std::vector<std::string>& cgi ) {
@@ -214,12 +207,12 @@ ServerContext*	Parser::__parseServer( HttpContext& httpCtx ) {
 	}
 	if ( serv->listenAddrs.size() == 0 ) {
 		__log << "server block must contain at least one listen directive";
-		__logError( false );
+		throw SyntaxError( __log );
 	}
 	if ( serv->root.size() == 0 ) {
 		__log << "root directive must be specified in [server] block .\n";
 		__log << "you can also specify one in [http] block to be used as default root";
-		__logError( false );
+		throw SyntaxError( __log );
 	}
 	__advance( Token::CLOSE_CURLY );
 	return serv;
@@ -237,33 +230,25 @@ void	Parser::parse( MainContext& http ) {
 		std::string	serverName = __parseKey();
 		std::map<std::string, ServerContext*>::iterator it = http.servers.find(serverName);
 		if ( it != http.servers.end()) {
-			__log << "duplicated servername: " << serverName;
-			__logError();
+			__log << "server name " << serverName << " at line " << __lexer.line << " already exists";
+			throw SyntaxError( __log );
 		}
 		http.servers[serverName] = __parseServer( http );
 	}
 	if ( http.servers.size() == 0) {
 		__log << "config file must contain at least one server block";
-		__logError( false );
+		throw SyntaxError( __log );
 	}
 	__advance( Token::CLOSE_CURLY );
 	__advance( Token::_EOF );
 }
 
-void	Parser::__logError( bool logLine ) {
-	std::string	err;
-	std::cerr << "webserv: configFile:\n" ;
-	if ( logLine ) {
-		std::cerr << "\tat line: " << CYAN << __lexer.line << RESET << ' ';
-	}
-	std::cerr << __log.str();
-	throw	SyntaxError();
-}
 
 void	Parser::__advance( Token::token_t tok ) {
 	if ( __currTok != tok ) {
-		__log << "expected " << Token(tok) << " but found " <<  __currTok;
-		__logError();
+		__log << "at line: " << __lexer.line;
+		__log << " expected " << Token(tok) << " but found " <<  __currTok;
+		throw SyntaxError( __log );
 	}
 	if ( __currTok != Token::_EOF )
 		__currTok = __lexer.getNextToken();
