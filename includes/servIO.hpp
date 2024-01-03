@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/31 13:36:09 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:01:56 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <arpa/inet.h>
 
 #define RESET "\033[0m"
 #define BLACK "\033[30m"
@@ -45,3 +46,5 @@
 
 
 std::string&	strim( std::string str, const std::string& del = "\t\v\r\n\f ");
+std::string		normPath( const std::string& path );
+bool	ft_stoi( const std::string& str, int& result );
