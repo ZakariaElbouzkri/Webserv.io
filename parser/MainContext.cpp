@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 19:18:21 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:35:12 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,6 +174,7 @@ sockaddr_in&	ListenAddress::Addr( void ) {
 }
 
 
+
 LocationContext::~LocationContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;
 	it = this->locations.begin();
@@ -181,6 +182,34 @@ LocationContext::~LocationContext( void ) {
 		delete it->second;
 	}
 }
+
+bool	LocationContext::has( const std::string& path ) {
+	if ( this->locations.empty() )
+		return false;
+	std::map<std::string, LocationContext*>::iterator it = this->locations.begin();
+	std::map<std::string, LocationContext*>::iterator itEnd = this->locations.end();
+	while ( it != itEnd ) {
+		if ( it->first == path || it->second->has( path ) )
+			return true;
+		it++;
+	}
+	return false;
+}
+
+
+bool	ServerContext::has( const std::string& path ) {
+	if ( this->locations.empty() )
+		return false;
+	std::map<std::string, LocationContext*>::iterator it = this->locations.begin();
+	std::map<std::string, LocationContext*>::iterator itEnd = this->locations.end();
+	while ( it != itEnd ) {
+		if ( it->first == path || it->second->has( path ) )
+			return true;
+		it++;
+	}
+	return false;
+}
+
 
 ServerContext::~ServerContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;

@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 19:20:05 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:28:36 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,6 +119,7 @@ class	LocationContext : public HttpContext {
 		LocationContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
 		LocationContext( const HttpContext& http ) : HttpContext( http ) {};
 		~LocationContext( );
+		bool	has( const std::string& path );
 };
 
 class	ServerContext : public HttpContext {
@@ -130,6 +131,8 @@ class	ServerContext : public HttpContext {
 		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
 		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		~ServerContext( void );
+
+		bool	has( const std::string& path );
 };
 
 class	MainContext : public HttpContext {
