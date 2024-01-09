@@ -1,12 +1,12 @@
-NAME      = webserv
-CC        = c++ -std=c++98
+NAME      = servIO
+CC        = c++ -std=c++98 
 FLAGS     = -Wall -Wextra -Werror
 RM        = rm -fr
 OBJDIR    = .obj
-FILES     = servIO
+FILES     = Parser/Lexer Parser/MainContext Parser/Parser Parser/Token servIO utils
 SRC       = $(FILES:=.cpp)
 OBJ       = $(addprefix $(OBJDIR)/, $(FILES:=.o))
-INCLUEDES = includes/servIO.hpp
+INCLUEDES = includes/servIO.hpp Parser/Lexer.hpp Parser/MainContext.hpp Parser/Parser.hpp Parser/Token.hpp
 
 all: $(NAME)
 
@@ -15,7 +15,7 @@ $(NAME): $(OBJ)
 
 $(OBJDIR)/%.o: %.cpp $(INCLUEDES)
 	mkdir -p $(dir $@)
-	$(CC) $(FLAGS) -c $< -o $@ -I ./includes
+	$(CC) $(FLAGS) -c $< -o $@ -I ./includes/ -I ./Parser
 
 clean:
 	$(RM) $(OBJDIR) $(OBJ)
