@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   MainContext.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
+/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 21:35:12 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/09 12:16:50 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
+#include "ServerContext.hpp"
 
 /* httpMethods class */
 
@@ -44,6 +45,15 @@ bool	HttpMethods::operator()( const std::string& method ) {
 	return this->has( method );
 }
 
+
+
+
+
+
+
+
+
+
 /* ErrorPage class */
 
 ErrorPage::ErrorPage( void ) {
@@ -68,6 +78,12 @@ const	std::string	ErrorPage::operator()( int code, const std::string& defaultPag
 	}
 	return defaultPage;
 }
+
+
+
+
+
+
 
 
 /* LogStream class */
@@ -149,6 +165,12 @@ LogStream&	LogStream::operator<<( stream_t strm ) {
 }
 
 
+
+
+
+
+
+
 /* Address */
 
 ListenAddress::ListenAddress( int port, int family, in_addr_t addr) {
@@ -197,6 +219,16 @@ bool	LocationContext::has( const std::string& path ) {
 }
 
 
+
+
+
+
+
+
+
+
+/*	ServerContext class */
+
 bool	ServerContext::has( const std::string& path ) {
 	if ( this->locations.empty() )
 		return false;
@@ -210,7 +242,6 @@ bool	ServerContext::has( const std::string& path ) {
 	return false;
 }
 
-
 ServerContext::~ServerContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;
 	it = this->locations.begin();
@@ -218,6 +249,38 @@ ServerContext::~ServerContext( void ) {
 		delete it->second;
 	}
 }
+
+void	ServerContext::createSocket(std::map<int, ServerContext*>&	ports)
+{
+	std::vector<ListenAddress>::iterator itb = this->listenAddrs.begin();
+	std::cout << "createSocket \n" << this->listenAddrs.size() << std::endl;
+	std::vector<ListenAddress>::iterator ite = this->listenAddrs.end();
+	while (itb != ite) {
+		Socket sock(AF_INET, SOCK_STREAM, 0);
+		if (!sock.good()) {
+			itb++;
+			continue;
+		}
+		if (!sock.bind((sockaddr*)&itb->Addr(), itb->Len()))  {
+			itb++;
+			continue;
+		}
+		if (!sock.listen(100)) {
+			itb++;
+			continue;
+		}
+		ports.insert(std::make_pair(sock.getFd(), this));
+		itb++;
+	}
+}
+
+
+
+
+
+
+
+
 
 
 /*	MainContext class */
@@ -230,3 +293,59 @@ MainContext::~MainContext( void ) {
 	}
 }
 
+void   MainContext::createServerSockets( void ) {
+	std::map<std::string, ServerContext*>::iterator itb = this->servers.begin();
+	std::map<std::string, ServerContext*>::iterator ite = this->servers.end();
+	while (itb != ite) {
+		itb->second->createSocket(this->ports);
+		itb++;
+	}
+}
+
+MainContext::MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {
+}
+
+
+/*    Socket    */
+
+Socket::Socket( int domain, int type, int protocol ) : __good(true) {
+    __fd = socket( domain, type, protocol );
+    if ( __fd < 0 ) {
+        // logs << ERROR << "Error creating socket" << END;
+        __good = false;
+    }
+    fcntl( __fd, F_SETFL, O_NONBLOCK );            
+    // printf("Socket constructor = %d\n", __fd);
+}
+
+bool    Socket::bind( const sockaddr *addr, socklen_t addrlen ) {
+    if ( ::bind( __fd, addr, addrlen ) < 0 ) {
+        logs << ERROR << "Error binding socket" << END;
+        return false;
+    }
+	logs << ACCESS << "Socket binded" << END;
+	return true;
+}
+
+bool    Socket::listen( int backlog ) {
+    if ( ::listen( __fd, backlog ) < 0 ) {
+        logs << ERROR << "Error listening" << END;
+		return false;
+    }
+	logs << ACCESS << "Socket listening" << END;
+	return true;
+}
+
+int     Socket::accept( sockaddr *addr, socklen_t *addrlen ) {
+    int fd = ::accept( __fd, addr, addrlen );
+    return fd;
+}
+
+void    Socket::close( void ) {
+    if ( __good )
+        ::close( __fd );
+}
+
+int     Socket::getFd( void ) const {
+    return __fd;
+}

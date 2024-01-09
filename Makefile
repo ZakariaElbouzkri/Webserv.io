@@ -3,10 +3,20 @@ CC        = c++ -std=c++98
 FLAGS     = -Wall -Wextra -Werror
 RM        = rm -fr
 OBJDIR    = .obj
-FILES     = Parser/Lexer Parser/MainContext Parser/Parser Parser/Token servIO utils
+FILES     = Parser/Lexer \
+		Parser/MainContext \
+		Parser/Parser \
+		Parser/Token \
+		servIO utils
+		# Parser/ServerContext \
 SRC       = $(FILES:=.cpp)
 OBJ       = $(addprefix $(OBJDIR)/, $(FILES:=.o))
-INCLUEDES = includes/servIO.hpp Parser/Lexer.hpp Parser/MainContext.hpp Parser/Parser.hpp Parser/Token.hpp
+INCLUEDES = includes/servIO.hpp \
+		Parser/Lexer.hpp \
+		Parser/MainContext.hpp \
+		Parser/Parser.hpp \
+		Parser/Token.hpp \
+		# Parser/ServerContext.hpp \
 
 all: $(NAME)
 
@@ -25,4 +35,3 @@ fclean: clean
 
 re: fclean all
 .PHONY: all clean fclean re
-

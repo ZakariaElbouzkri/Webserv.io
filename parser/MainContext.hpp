@@ -3,16 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   MainContext.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
+/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 21:28:36 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/09 12:11:33 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include "servIO.hpp"
+#include "ServerContext.hpp"
+
+class ServerContext;
 
 class	HttpMethods {
 	public:
@@ -122,24 +125,43 @@ class	LocationContext : public HttpContext {
 		bool	has( const std::string& path );
 };
 
+class   Socket {
+    public:
+        Socket( int domain = AF_INET, int type = SOCK_STREAM, int protocol = 0);
+        ~Socket( void ) { };
+        bool    bind( const sockaddr *addr, socklen_t addrlen );
+        bool    listen( int backlog );
+        int     accept( sockaddr *addr, socklen_t *addrlen );
+        void    close( void );
+        int     getFd( void ) const;
+		bool    good( void ) const {
+			return __good;
+		}
+    private:
+        int         __fd;
+        bool        __good;
+};
+
 class	ServerContext : public HttpContext {
 	public:
 		std::vector<ListenAddress>					listenAddrs;
 		HttpMethods									allowedMethods;
 		std::map<std::string, LocationContext*>		locations;
+		std::vector<Socket>							sockets;
 
 		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
 		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		~ServerContext( void );
 
+		void	createSocket(std::map<int, ServerContext*>& ports);
 		bool	has( const std::string& path );
 };
 
 class	MainContext : public HttpContext {
 	public:
 		std::map<std::string, ServerContext*>	servers;
-		MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		std::map<int, ServerContext*>			ports;
+		MainContext( LogStream& lgs, ErrorPage& errPages );
+		void createServerSockets( void );
 		~MainContext( void );
 };
-
-
