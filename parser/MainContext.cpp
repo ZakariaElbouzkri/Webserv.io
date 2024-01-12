@@ -6,7 +6,7 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/09 12:16:50 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/12 20:31:49 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -243,17 +243,16 @@ bool	ServerContext::has( const std::string& path ) {
 }
 
 ServerContext::~ServerContext( void ) {
-	std::map<std::string, LocationContext*>::iterator it;
-	it = this->locations.begin();
-	for ( ; it != this->locations.end(); it++ ) {
-		delete it->second;
-	}
+	// std::map<std::string, LocationContext*>::iterator it;
+	// it = this->locations.begin();
+	// for ( ; it != this->locations.end(); it++ ) {
+	// 	delete it->second;
+	// }
 }
 
-void	ServerContext::createSocket(std::map<int, ServerContext*>&	ports)
+void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
 {
 	std::vector<ListenAddress>::iterator itb = this->listenAddrs.begin();
-	std::cout << "createSocket \n" << this->listenAddrs.size() << std::endl;
 	std::vector<ListenAddress>::iterator ite = this->listenAddrs.end();
 	while (itb != ite) {
 		Socket sock(AF_INET, SOCK_STREAM, 0);
@@ -269,7 +268,7 @@ void	ServerContext::createSocket(std::map<int, ServerContext*>&	ports)
 			itb++;
 			continue;
 		}
-		ports.insert(std::make_pair(sock.getFd(), this));
+		ports.insert(std::pair<int, ServerContext&>(sock.getFd(), *this));
 		itb++;
 	}
 }
@@ -302,6 +301,36 @@ void   MainContext::createServerSockets( void ) {
 	}
 }
 
+void MainContext::addSocketToPoll( pollfd* pollfds ) {
+	int i = 0;
+	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
+	while ( it != this->ports.end() ) {
+		pollfds[i].fd = it->first;
+		pollfds[i].events = POLLIN;
+		i++;
+		it++;
+	}
+}
+
+int MainContext::getFd( pollfd *pollfds ) {
+	int readySockets = poll(pollfds, 10 + 1, -1);
+
+	if (readySockets < 0) {
+		// Handle error
+		this->logs << ERROR << "Error in poll: " << strerror(errno) << END;
+		return -1;
+	}
+	else if (readySockets == 0) {
+		// Handle timeout (not possible here, but good practice)
+		this->logs << ERROR << "Timeout in poll" << END;
+		return -1;
+	}
+	int i = 0;
+	while (!(pollfds[i].revents & POLLIN) && !(pollfds[i].revents & POLLOUT))
+		i++;
+	return i;
+}
+
 MainContext::MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {
 }
 
@@ -314,7 +343,7 @@ Socket::Socket( int domain, int type, int protocol ) : __good(true) {
         // logs << ERROR << "Error creating socket" << END;
         __good = false;
     }
-    fcntl( __fd, F_SETFL, O_NONBLOCK );            
+    fcntl( __fd, F_SETFL, O_NONBLOCK | O_APPEND); 
     // printf("Socket constructor = %d\n", __fd);
 }
 

@@ -6,7 +6,7 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/09 12:11:33 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/12 12:03:20 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -153,15 +153,17 @@ class	ServerContext : public HttpContext {
 		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		~ServerContext( void );
 
-		void	createSocket(std::map<int, ServerContext*>& ports);
+		void	createSocket(std::map<int, ServerContext&>& ports);
 		bool	has( const std::string& path );
 };
 
 class	MainContext : public HttpContext {
 	public:
 		std::map<std::string, ServerContext*>	servers;
-		std::map<int, ServerContext*>			ports;
+		std::map<int, ServerContext&>			ports;
 		MainContext( LogStream& lgs, ErrorPage& errPages );
 		void createServerSockets( void );
+		void addSocketToPoll( pollfd* pollfds );
+		int getFd( pollfd *pollfds );
 		~MainContext( void );
 };
