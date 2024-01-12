@@ -1,0 +1,13 @@
+total 992
+-rw-r--r--   1 nakebli  candidate     896 Jan  5 11:18 BNF.md
+-rw-r--r--   1 nakebli  candidate     750 Jan  6 12:15 Makefile
+-rw-r--r--   1 nakebli  candidate    1534 Jan  5 11:18 conf.md
+drwxr-xr-x   3 nakebli  candidate     102 Jan  5 11:18 configuration
+drwxr-xr-x   3 nakebli  candidate     102 Jan  5 11:18 error_pages
+drwxr-xr-x   3 nakebli  candidate     102 Jan  5 11:18 includes
+drwxr-xr-x   4 nakebli  candidate     136 Jan 10 11:25 logs
+-rw-r--r--   1 nakebli  candidate       0 Jan 10 12:02 out
+drwxr-xr-x  12 nakebli  candidate     408 Jan  6 11:05 parser
+-rwxr-xr-x   1 nakebli  candidate  486208 Jan 10 11:49 servIO
+-rw-r--r--   1 nakebli  candidate    3584 Jan 10 11:46 servIO.cpp
+-rw-r--r--   1 nakebli  candidate    1795 Jan  5 11:18 utils.cpp

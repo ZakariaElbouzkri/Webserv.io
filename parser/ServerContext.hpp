@@ -6,7 +6,7 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/31 19:57:19 by nakebli           #+#    #+#             */
-/*   Updated: 2024/01/02 17:24:27 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/04 12:17:56 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,10 +45,10 @@ class	ServerContext : public HttpContext {
 		std::vector<ListenAddress>					listenAddrs;
 		HttpMethods									allowedMethods;
 		std::map<std::string, LocationContext*>		locations;
-		Socket	        							serverSocket;
+        Socket                   					serverSocket;
 
-		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) { serverSocket = Socket(); };
-		ServerContext( const HttpContext& http ) : HttpContext( http ) { serverSocket = Socket(); this->bindsocket(); };
+		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		void	bindsocket( void );
         int    init_listenaddrs( void );
 		~ServerContext( void );

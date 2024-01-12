@@ -6,7 +6,7 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/31 20:21:38 by nakebli           #+#    #+#             */
-/*   Updated: 2024/01/02 14:35:51 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/04 18:33:27 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,14 @@ Socket::~Socket( void ) {
         ::close( __fd );
 }
 
-Socket::Socket( int domain = AF_INET, int type = SOCK_STREAM, int protocol = 0) : __good(true) {
+Socket::Socket( int domain, int type, int protocol ) : __good(true) {
     __fd = socket( domain, type, protocol );
     if ( __fd < 0 ) {
         logs << ERROR << "Error creating socket" << END;
         __good = false;
     }
     fcntl( __fd, F_SETFL, O_NONBLOCK );            
+    printf("Socket constructor = %d\n", __fd);
 }
 
 void    Socket::bind( const sockaddr *addr, socklen_t addrlen ) {
@@ -95,25 +96,27 @@ ServerContext::~ServerContext( void ) {
 
 void ServerContext::bindsocket() {
     for (std::vector<ListenAddress>::const_iterator it = listenAddrs.begin(); it != listenAddrs.end(); it++) {
-        sockaddr_in addr;
-        std::memset(&addr, 0, sizeof(addr));
 
+        sockaddr_in addr;
+
+        std::memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port = htons(8080);
 
-        if (inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) <= 0) {
-            logs << ERROR << "Invalid address: " << "127.0.0.1" << END;
-            continue ;
-        }
+        // if (inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) <= 0) {
+        //     logs << ERROR << "Invalid address: " << "127.0.0.1" << END;
+        //     continue ;
+        // }
 
         serverSocket.bind(reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
-        serverSocket.listen(2); // Adjust the backlog value as needed
+        // serverSocket.listen(7); // Adjust the backlog value as needed
     }
 }
 
 int    ServerContext::init_listenaddrs( void ) {
     for ( int i = 8000;  i < 8003;  i++ ) {
-        
+
         ListenAddress *it = new ListenAddress();
         it->setPort(i);
         it->setHost("127.0.0.1");
