@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 12:27:43 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 15:37:06 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,8 +41,8 @@
 
 #include "Token.hpp"
 #include "Lexer.hpp"
-#include "Socket.hpp"
 #include "Poller.hpp"
+#include "Socket.hpp"
 #include "MainContext.hpp"
 #include "Parser.hpp"
 

@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 14:27:08 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 15:36:11 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -218,7 +218,7 @@ ServerContext::~ServerContext( void ) {
 	}
 }
 
-void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
+void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports, Poller& pollfds )
 {
 	std::vector<ListenAddress>::iterator itb = this->listenAddrs.begin();
 	std::vector<ListenAddress>::iterator ite = this->listenAddrs.end();
@@ -237,6 +237,7 @@ void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
 			continue;
 		}
 		ports.insert(std::pair<int, ServerContext&>(sock.getFd(), *this));
+		pollfds.pushFd(sock.getFd());
 		itb++;
 	}
 }
@@ -252,25 +253,25 @@ MainContext::~MainContext( void ) {
 	}
 }
 
-void   MainContext::createServerSockets( void ) {
+void   MainContext::createServerSockets( Poller& pollfds ) {
 	std::map<std::string, ServerContext*>::iterator itb = this->servers.begin();
 	std::map<std::string, ServerContext*>::iterator ite = this->servers.end();
 	while (itb != ite) {
-		itb->second->createSocket(this->ports);
+		itb->second->createSocket(this->ports, pollfds );
 		itb++;
 	}
 }
 
-void MainContext::addSocketToPoll( pollfd* pollfds ) {
-	int i = 0;
-	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
-	while ( it != this->ports.end() ) {
-		pollfds[i].fd = it->first;
-		pollfds[i].events = POLLIN;
-		i++;
-		it++;
-	}
-}
+// void MainContext::addSocketToPoll( pollfd* pollfds ) {
+// 	int i = 0;
+// 	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
+// 	while ( it != this->ports.end() ) {
+// 		pollfds[i].fd = it->first;
+// 		pollfds[i].events = POLLIN;
+// 		i++;
+// 		it++;
+// 	}
+// }
 
 int MainContext::getFd( pollfd *pollfds ) {
 	int readySockets = poll(pollfds, 10 + 1, -1);

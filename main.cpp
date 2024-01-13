@@ -6,13 +6,14 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 12:40:18 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 12:28:30 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 15:45:32 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
 
 LogStream	logs;
+
 
 int	main() {
 	MainContext	http( logs );

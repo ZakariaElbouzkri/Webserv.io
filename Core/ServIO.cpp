@@ -6,46 +6,52 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/13 11:11:12 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 11:25:06 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 15:45:24 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
+#include "Poller.hpp"
+
+/*
+	serverPolls;
+	clientPolls;
+*/
+
 
 void	servCore( MainContext& main ) {
-	main.createServerSockets();
-	pollfd	pollfds[50];
-	if ( main.servers.size() == 0  || main.ports.size() == 0) {
-		std::cerr << "No server found\n";
-		exit ( EXIT_FAILURE );
-	}
-	main.addSocketToPoll ( pollfds );
-	while (true) {
-		int i = main.getFd( pollfds );
-		if ( i < 0 )
-			continue ;
-        if (i < 50 && pollfds[i].revents & POLLIN ) {
-			// std::cout << "POLLIN\n";
-            sockaddr_in clientAddr;
-            socklen_t clientAddrLen = sizeof(clientAddr);
-			int clientSocket = accept(pollfds[i].fd, reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrLen);
+	Poller	clientPolls;
+	Poller	serverPolls;
+	
+	main.createServerSockets( serverPolls );
 
-			if (clientSocket >= 0) {
-                logs << ACCESS << "New client connected" << END;
-
-				char buffer[4096] = {0}; // Buffer to store the request
-				// memset(buffer, 0, sizeof(buffer)); // Clear the buffer
-				
-				// Receive the request
-				int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-				if (bytesReceived < 0)
-				    std::cerr << "Error: " << strerror(errno) << std::endl;
-				else {
-				    std::cout << "Received: " << buffer << std::endl;
+	while (main.ports.size()) {
+		int i = serverPolls.poll();
+		if (i >= 0) {
+			if ( serverPolls[i].revents & POLLIN ) {
+				sockaddr_in clientAddr;
+            	socklen_t clientAddrLen = sizeof(clientAddr);
+				int	clientSocket = accept(serverPolls[i].fd,
+					reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrLen);
+				if ( clientSocket == -1) {
+					logs << ERROR << "failed to accept new client" << END;
 				}
-            } else {
-				logs << ERROR << "Error accepting new client: " << strerror(errno) << END;
+				logs << ACCESS << "new client connected" << END;
+				clientPolls.pushFd(clientSocket);
 			}
+		}
+		int	j = clientPolls.poll();
+		if ( j >= 0 ) {
+			char	buffer[4096] = {0};
+			int rd = recv(clientPolls[j].fd, buffer, sizeof(buffer), 0);
+			if (rd == 0) {
+				clientPolls.erase(clientPolls[j].fd);
+				continue;
+			}
+			if ( rd < 0 )
+				logs << ERROR << "Error recieving message from the client" << END;
+			else
+				std::cout << "Received: " << buffer << '\n';
 		}
     }
 }
