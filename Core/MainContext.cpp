@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 21:35:12 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 14:27:08 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,6 @@ const	std::string	ErrorPage::operator()( int code, const std::string& defaultPag
 	}
 	return defaultPage;
 }
-
 
 /* LogStream class */
 
@@ -148,7 +147,6 @@ LogStream&	LogStream::operator<<( stream_t strm ) {
 	return *this;
 }
 
-
 /* Address */
 
 ListenAddress::ListenAddress( int port, int family, in_addr_t addr) {
@@ -197,6 +195,8 @@ bool	LocationContext::has( const std::string& path ) {
 }
 
 
+/*	ServerContext class */
+
 bool	ServerContext::has( const std::string& path ) {
 	if ( this->locations.empty() )
 		return false;
@@ -210,12 +210,34 @@ bool	ServerContext::has( const std::string& path ) {
 	return false;
 }
 
-
 ServerContext::~ServerContext( void ) {
 	std::map<std::string, LocationContext*>::iterator it;
 	it = this->locations.begin();
 	for ( ; it != this->locations.end(); it++ ) {
 		delete it->second;
+	}
+}
+
+void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
+{
+	std::vector<ListenAddress>::iterator itb = this->listenAddrs.begin();
+	std::vector<ListenAddress>::iterator ite = this->listenAddrs.end();
+	while (itb != ite) {
+		Socket sock(AF_INET, SOCK_STREAM, 0);
+		if (!sock.good()) {
+			itb++;
+			continue;
+		}
+		if (!sock.bind((sockaddr*)&itb->Addr(), itb->Len()))  {
+			itb++;
+			continue;
+		}
+		if (!sock.listen(100)) {
+			itb++;
+			continue;
+		}
+		ports.insert(std::pair<int, ServerContext&>(sock.getFd(), *this));
+		itb++;
 	}
 }
 
@@ -230,3 +252,44 @@ MainContext::~MainContext( void ) {
 	}
 }
 
+void   MainContext::createServerSockets( void ) {
+	std::map<std::string, ServerContext*>::iterator itb = this->servers.begin();
+	std::map<std::string, ServerContext*>::iterator ite = this->servers.end();
+	while (itb != ite) {
+		itb->second->createSocket(this->ports);
+		itb++;
+	}
+}
+
+void MainContext::addSocketToPoll( pollfd* pollfds ) {
+	int i = 0;
+	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
+	while ( it != this->ports.end() ) {
+		pollfds[i].fd = it->first;
+		pollfds[i].events = POLLIN;
+		i++;
+		it++;
+	}
+}
+
+int MainContext::getFd( pollfd *pollfds ) {
+	int readySockets = poll(pollfds, 10 + 1, -1);
+
+	if (readySockets < 0) {
+		// Handle error
+		this->logs << ERROR << "Error in poll: " << strerror(errno) << END;
+		return -1;
+	}
+	else if (readySockets == 0) {
+		// Handle timeout (not possible here, but good practice)
+		this->logs << ERROR << "Timeout in poll" << END;
+		return -1;
+	}
+	int i = 0;
+	while (!(pollfds[i].revents & POLLIN) && !(pollfds[i].revents & POLLOUT))
+		i++;
+	return i;
+}
+
+MainContext::MainContext( LogStream& lgs ) : HttpContext(lgs) {
+}

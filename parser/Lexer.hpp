@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Lexer.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
+/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:55:01 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/02 21:06:24 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/12 10:34:17 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ class	Lexer {
 		char									__curr;
 		bool									__good;
 		std::map<std::string, Token::token_t>	__keywords;
-		
+
 		void	__advance( void );
 		Token	__parseWord( void );
 		void	__skipComment( void );

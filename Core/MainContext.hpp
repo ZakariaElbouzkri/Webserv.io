@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/03 21:28:36 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 11:28:41 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,19 +88,19 @@ class	ListenAddress {
 };
 
 
-
 class	HttpContext {
 	public:
 		LogStream&					logs;
-		ErrorPage&					errorPage;
+		ErrorPage					errorPage;
 		std::vector<std::string>	index;
 		bool						autoIndex;
 		std::string					root;
 		int							maxBody;
 
-		HttpContext( LogStream& lgs, ErrorPage& errPages ) : logs(lgs), errorPage(errPages) {};
+		HttpContext( LogStream& lgs ) : logs(lgs) {};
 		~HttpContext( void ) {};
-		HttpContext( const HttpContext& rhs ) : logs(rhs.logs), errorPage(rhs.errorPage) {
+		HttpContext( const HttpContext& rhs ) : logs(rhs.logs) {
+			this->errorPage = rhs.errorPage;
 			this->index = rhs.index;
 			this->autoIndex = rhs.autoIndex;
 			this->root = rhs.root;
@@ -116,30 +116,35 @@ class	LocationContext : public HttpContext {
 		HttpMethods								allowedMethods;
 		std::map<std::string, LocationContext*>	locations;
 
-		LocationContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		LocationContext( LogStream& lgs ) : HttpContext(lgs) {};
 		LocationContext( const HttpContext& http ) : HttpContext( http ) {};
 		~LocationContext( );
 		bool	has( const std::string& path );
 };
+
 
 class	ServerContext : public HttpContext {
 	public:
 		std::vector<ListenAddress>					listenAddrs;
 		HttpMethods									allowedMethods;
 		std::map<std::string, LocationContext*>		locations;
+		std::vector<Socket>							sockets;
 
-		ServerContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		ServerContext( LogStream& lgs ) : HttpContext(lgs) {};
 		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		~ServerContext( void );
 
+		void	createSocket(std::map<int, ServerContext&>& ports);
 		bool	has( const std::string& path );
 };
 
 class	MainContext : public HttpContext {
 	public:
 		std::map<std::string, ServerContext*>	servers;
-		MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		std::map<int, ServerContext&>			ports;
+		MainContext( LogStream& lgs );
+		void createServerSockets( void );
+		void addSocketToPoll( pollfd* pollfds );
+		int getFd( pollfd *pollfds );
 		~MainContext( void );
 };
-
-
