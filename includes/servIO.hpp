@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   servIO.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
+/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/06 10:49:24 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/13 12:27:43 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,12 +41,14 @@
 
 #include "Token.hpp"
 #include "Lexer.hpp"
+#include "Socket.hpp"
+#include "Poller.hpp"
 #include "MainContext.hpp"
 #include "Parser.hpp"
 
 
 
-
+void	servCore( MainContext& main );
 std::string&	strim( std::string str, const std::string& del = "\t\v\r\n\f ");
 std::string		normPath( const std::string& path );
 bool	ft_stoi( const std::string& str, int& result );
