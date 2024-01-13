@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 21:34:21 by zel-bouz          #+#    #+#             */
-/*   Updated: 2023/12/30 06:16:08 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/03 21:22:42 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,21 +30,26 @@ class	Parser {
 		void				__parseRedirectPage( std::pair<int, std::string>& page );
 		std::string			__parseKey( void );
 		ServerContext*		__parseServer( HttpContext& httpCtx );
-		LocationContext*	__parseLocation( HttpContext& httpCtx );
+		LocationContext*	__parseLocation( HttpContext& httpCtx, const std::string& path, ServerContext& parent );
 		ListenAddress		__parseListenAddr( void );
-		void				__logError( void );
+		// void				__logError( bool logLine = true );
 		
 	public:
 		class	SyntaxError : public std::exception {
+			std::string	__msg;
 			public:
-				const char * what( void ) const _NOEXCEPT {
-					return "";
+				SyntaxError( std::stringstream& log ) throw() {
+					__msg = "webserv: config: " + log.str();
 				}
+				const char * what( void ) const _NOEXCEPT {
+					return __msg.c_str();
+				}
+				virtual ~SyntaxError() _NOEXCEPT {};
 		};
 		class	FileNotFoundOrEmpty : public std::exception {
 			public:
 				const char * what( void ) const _NOEXCEPT {
-					return "Cofing file can't be open or empty";
+					return "webserv: config: file not found or empty";
 				}
 		};
 		void	parse( MainContext& http );

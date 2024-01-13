@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   servIO.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
+/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/27 21:00:57 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/02 10:00:59 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/13 15:37:06 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,16 +16,17 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <poll.h>
-#include <fcntl.h>
-#include <cstring>
 #include <sys/select.h>
 #include <utility>
 #include <fstream>
+#include <fcntl.h>
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 #include <map>
 #include <set>
 #include <vector>
+#include <arpa/inet.h>
 
 #define RESET "\033[0m"
 #define BLACK "\033[30m"
@@ -40,10 +41,14 @@
 
 #include "Token.hpp"
 #include "Lexer.hpp"
+#include "Poller.hpp"
+#include "Socket.hpp"
 #include "MainContext.hpp"
 #include "Parser.hpp"
 
 
 
-
+void	servCore( MainContext& main );
 std::string&	strim( std::string str, const std::string& del = "\t\v\r\n\f ");
+std::string		normPath( const std::string& path );
+bool	ft_stoi( const std::string& str, int& result );

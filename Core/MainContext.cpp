@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   MainContext.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
+/*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/12 12:05:03 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/13 15:36:11 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "servIO.hpp"
-#include "ServerContext.hpp"
 
 /* httpMethods class */
 
@@ -45,15 +44,6 @@ bool	HttpMethods::operator()( const std::string& method ) {
 	return this->has( method );
 }
 
-
-
-
-
-
-
-
-
-
 /* ErrorPage class */
 
 ErrorPage::ErrorPage( void ) {
@@ -78,13 +68,6 @@ const	std::string	ErrorPage::operator()( int code, const std::string& defaultPag
 	}
 	return defaultPage;
 }
-
-
-
-
-
-
-
 
 /* LogStream class */
 
@@ -164,13 +147,6 @@ LogStream&	LogStream::operator<<( stream_t strm ) {
 	return *this;
 }
 
-
-
-
-
-
-
-
 /* Address */
 
 ListenAddress::ListenAddress( int port, int family, in_addr_t addr) {
@@ -219,14 +195,6 @@ bool	LocationContext::has( const std::string& path ) {
 }
 
 
-
-
-
-
-
-
-
-
 /*	ServerContext class */
 
 bool	ServerContext::has( const std::string& path ) {
@@ -243,14 +211,14 @@ bool	ServerContext::has( const std::string& path ) {
 }
 
 ServerContext::~ServerContext( void ) {
-	// std::map<std::string, LocationContext*>::iterator it;
-	// it = this->locations.begin();
-	// for ( ; it != this->locations.end(); it++ ) {
-	// 	delete it->second;
-	// }
+	std::map<std::string, LocationContext*>::iterator it;
+	it = this->locations.begin();
+	for ( ; it != this->locations.end(); it++ ) {
+		delete it->second;
+	}
 }
 
-void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
+void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports, Poller& pollfds )
 {
 	std::vector<ListenAddress>::iterator itb = this->listenAddrs.begin();
 	std::vector<ListenAddress>::iterator ite = this->listenAddrs.end();
@@ -269,17 +237,10 @@ void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports)
 			continue;
 		}
 		ports.insert(std::pair<int, ServerContext&>(sock.getFd(), *this));
+		pollfds.pushFd(sock.getFd());
 		itb++;
 	}
 }
-
-
-
-
-
-
-
-
 
 
 /*	MainContext class */
@@ -292,25 +253,25 @@ MainContext::~MainContext( void ) {
 	}
 }
 
-void   MainContext::createServerSockets( void ) {
+void   MainContext::createServerSockets( Poller& pollfds ) {
 	std::map<std::string, ServerContext*>::iterator itb = this->servers.begin();
 	std::map<std::string, ServerContext*>::iterator ite = this->servers.end();
 	while (itb != ite) {
-		itb->second->createSocket(this->ports);
+		itb->second->createSocket(this->ports, pollfds );
 		itb++;
 	}
 }
 
-void MainContext::addSocketToPoll( pollfd* pollfds ) {
-	int i = 0;
-	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
-	while ( it != this->ports.end() ) {
-		pollfds[i].fd = it->first;
-		pollfds[i].events = POLLIN | POLLOUT;
-		i++;
-		it++;
-	}
-}
+// void MainContext::addSocketToPoll( pollfd* pollfds ) {
+// 	int i = 0;
+// 	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
+// 	while ( it != this->ports.end() ) {
+// 		pollfds[i].fd = it->first;
+// 		pollfds[i].events = POLLIN;
+// 		i++;
+// 		it++;
+// 	}
+// }
 
 int MainContext::getFd( pollfd *pollfds ) {
 	int readySockets = poll(pollfds, 10 + 1, -1);
@@ -331,50 +292,5 @@ int MainContext::getFd( pollfd *pollfds ) {
 	return i;
 }
 
-MainContext::MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {
-}
-
-
-/*    Socket    */
-
-Socket::Socket( int domain, int type, int protocol ) : __good(true) {
-    __fd = socket( domain, type, protocol );
-    if ( __fd < 0 ) {
-        // logs << ERROR << "Error creating socket" << END;
-        __good = false;
-    }
-    fcntl( __fd, F_SETFL, O_NONBLOCK );            
-    // printf("Socket constructor = %d\n", __fd);
-}
-
-bool    Socket::bind( const sockaddr *addr, socklen_t addrlen ) {
-    if ( ::bind( __fd, addr, addrlen ) < 0 ) {
-        logs << ERROR << "Error binding socket" << END;
-        return false;
-    }
-	logs << ACCESS << "Socket binded" << END;
-	return true;
-}
-
-bool    Socket::listen( int backlog ) {
-    if ( ::listen( __fd, backlog ) < 0 ) {
-        logs << ERROR << "Error listening" << END;
-		return false;
-    }
-	logs << ACCESS << "Socket listening" << END;
-	return true;
-}
-
-int     Socket::accept( sockaddr *addr, socklen_t *addrlen ) {
-    int fd = ::accept( __fd, addr, addrlen );
-    return fd;
-}
-
-void    Socket::close( void ) {
-    if ( __good )
-        ::close( __fd );
-}
-
-int     Socket::getFd( void ) const {
-    return __fd;
+MainContext::MainContext( LogStream& lgs ) : HttpContext(lgs) {
 }

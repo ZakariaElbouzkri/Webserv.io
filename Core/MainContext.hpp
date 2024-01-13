@@ -6,16 +6,13 @@
 /*   By: nakebli <nakebli@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/04 10:41:25 by nakebli          ###   ########.fr       */
+/*   Updated: 2024/01/13 19:05:15 by nakebli          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include "servIO.hpp"
-// #include "ServerContext.hpp"
-
-class ServerContext;
 
 class	HttpMethods {
 	public:
@@ -37,7 +34,6 @@ class	ErrorPage {
 		~ErrorPage( void );
 		void				add( int code, const std::string& page );
 		const std::string	operator()( int code, const std::string& message );
-		void				insert( std::vector<std::string> codes );
 	private:
 		std::map<int, std::string>	__pages;
 };
@@ -80,33 +76,31 @@ class	LogStream {
 };
 
 class	ListenAddress {
-	public:
-		void		setPort( const int& port );
-		void		setHost( const std::string& host );
-	
-		const int&			getPort( void ) const;
-		const std::string&	getHost( void ) const;
-		ListenAddress( void );
-		~ListenAddress( void );
 	private:
-		int			__port;
-		std::string	__host;
+		sockaddr_in	__addr;
+		socklen_t	__len;
+	public:
+		ListenAddress( int port = 54000, int family = AF_INET, in_addr_t addr = INADDR_ANY );
+		~ListenAddress( void );
+		void	Length( socklen_t len );
+		sockaddr_in&	Addr( void );
+		socklen_t&		Len( void );
 };
-
 
 
 class	HttpContext {
 	public:
 		LogStream&					logs;
-		ErrorPage&					errorPage;
+		ErrorPage					errorPage;
 		std::vector<std::string>	index;
 		bool						autoIndex;
 		std::string					root;
 		int							maxBody;
 
-		HttpContext( LogStream& lgs, ErrorPage& errPages ) : logs(lgs), errorPage(errPages) {};
+		HttpContext( LogStream& lgs ) : logs(lgs) {};
 		~HttpContext( void ) {};
-		HttpContext( const HttpContext& rhs ) : logs(rhs.logs), errorPage(rhs.errorPage) {
+		HttpContext( const HttpContext& rhs ) : logs(rhs.logs) {
+			this->errorPage = rhs.errorPage;
 			this->index = rhs.index;
 			this->autoIndex = rhs.autoIndex;
 			this->root = rhs.root;
@@ -122,17 +116,63 @@ class	LocationContext : public HttpContext {
 		HttpMethods								allowedMethods;
 		std::map<std::string, LocationContext*>	locations;
 
-		LocationContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
+		LocationContext( LogStream& lgs ) : HttpContext(lgs) {};
 		LocationContext( const HttpContext& http ) : HttpContext( http ) {};
 		~LocationContext( );
+		bool	has( const std::string& path );
+};
+
+
+class	ServerContext : public HttpContext {
+	public:
+		std::vector<ListenAddress>					listenAddrs;
+		HttpMethods									allowedMethods;
+		std::map<std::string, LocationContext*>		locations;
+		std::vector<Socket>							sockets;
+
+		ServerContext( LogStream& lgs ) : HttpContext(lgs) {};
+		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
+		~ServerContext( void );
+
+		void	createSocket(std::map<int, ServerContext&>&	ports, Poller& pollfds );
+		bool	has( const std::string& path );
+};
+
+class	ClientInfo {
+	public : 
+		sockaddr_in		addr;
+		socklen_t		len;
+		int				fd;
+		std::string		request;
+		std::string		response;
+
+		ClientInfo( void ) {};
+		ClientInfo( int sockfd ) {len = sizeof(addr); fd = accept(sockfd, (struct sockaddr *)&addr, &len);};
+		~ClientInfo( void ) {};
+		ClientInfo( const ClientInfo& rhs ) {
+			this->addr = rhs.addr;
+			this->len = rhs.len;
+			this->fd = rhs.fd;
+			this->request = rhs.request;
+			this->response = rhs.response;
+		};
+		ClientInfo&	operator=( const ClientInfo& rhs ) {
+			this->addr = rhs.addr;
+			this->len = rhs.len;
+			this->fd = rhs.fd;
+			this->request = rhs.request;
+			this->response = rhs.response;
+			return *this;
+		};
 };
 
 class	MainContext : public HttpContext {
 	public:
 		std::map<std::string, ServerContext*>	servers;
-		MainContext( LogStream& lgs, ErrorPage& errPages ) : HttpContext(lgs, errPages) {};
-		static void		init_bindsocket( std::map<std::string, ServerContext*>& servers );
+		std::map<int, ServerContext&>			ports;
+		std::map<int, ClientInfo&>				clients;
+		MainContext( LogStream& lgs );
+		void createServerSockets( Poller& pollfds );
+		int getFd( pollfd *pollfds );
 		~MainContext( void );
 };
-
-
