@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/13 12:26:56 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 15:42:13 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/14 13:37:39 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,11 +50,6 @@ int	Poller::poll( int timeout ) {
 		logs << ERROR << "servIO: " << "poll: " << strerror(errno) << END;
 		return -1;
 	}
-	// else if (readySocket == 0) {
-	// 	// Handle timeout (not possible here, but good practice)
-	// 	logs << ERROR << "Timeout in poll" << END;
-	// 	return -1;
-	// }
 	for ( size_t idx = 0; idx < __pollfds.size(); idx++ ) {
 		if ( __pollfds[idx].revents & POLLIN || __pollfds[idx].revents & POLLOUT )
 			return idx;
@@ -62,19 +57,6 @@ int	Poller::poll( int timeout ) {
 	return -1;
 }
 
-	// int readySockets = poll(pollfds, 10 + 1, -1);
-
-	// if (readySockets < 0) {
-	// 	// Handle error
-	// 	this->logs << ERROR << "Error in poll: " << strerror(errno) << END;
-	// 	return -1;
-	// }
-	// else if (readySockets == 0) {
-	// 	// Handle timeout (not possible here, but good practice)
-	// 	this->logs << ERROR << "Timeout in poll" << END;
-	// 	return -1;
-	// }
-	// int i = 0;
-	// while (!(pollfds[i].revents & POLLIN) && !(pollfds[i].revents & POLLOUT))
-	// 	i++;
-	// return i;
+struct pollfd& Poller::operator[]( const int& idx ) {
+	return __pollfds.at(idx);
+}
