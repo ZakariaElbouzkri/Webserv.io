@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:08 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 15:36:11 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 18:00:17 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,7 +174,7 @@ sockaddr_in&	ListenAddress::Addr( void ) {
 
 
 LocationContext::~LocationContext( void ) {
-	std::map<std::string, LocationContext*>::iterator it;
+	locIter it;
 	it = this->locations.begin();
 	for ( ; it != this->locations.end(); it++ ) {
 		delete it->second;
@@ -184,8 +184,8 @@ LocationContext::~LocationContext( void ) {
 bool	LocationContext::has( const std::string& path ) {
 	if ( this->locations.empty() )
 		return false;
-	std::map<std::string, LocationContext*>::iterator it = this->locations.begin();
-	std::map<std::string, LocationContext*>::iterator itEnd = this->locations.end();
+	locIter it = this->locations.begin();
+	locIter itEnd = this->locations.end();
 	while ( it != itEnd ) {
 		if ( it->first == path || it->second->has( path ) )
 			return true;
@@ -194,14 +194,28 @@ bool	LocationContext::has( const std::string& path ) {
 	return false;
 }
 
+LocationContext*	LocationContext::getLocation( const std::string& url ) {
+	locIter	it = this->locations.begin();
+	locIter ite = this->locations.end();
+	while ( it != ite ) {
+		if (it->first == url)
+			return it->second;
+		LocationContext* ans = it->second->getLocation( url );
+		if (ans != nullptr)
+			return ans;
+		it++;
+	}
+	return nullptr;
+}
+
 
 /*	ServerContext class */
 
 bool	ServerContext::has( const std::string& path ) {
 	if ( this->locations.empty() )
 		return false;
-	std::map<std::string, LocationContext*>::iterator it = this->locations.begin();
-	std::map<std::string, LocationContext*>::iterator itEnd = this->locations.end();
+	LocationContext::locIter it = this->locations.begin();
+	LocationContext::locIter itEnd = this->locations.end();
 	while ( it != itEnd ) {
 		if ( it->first == path || it->second->has( path ) )
 			return true;
@@ -211,11 +225,26 @@ bool	ServerContext::has( const std::string& path ) {
 }
 
 ServerContext::~ServerContext( void ) {
-	std::map<std::string, LocationContext*>::iterator it;
+	LocationContext::locIter it;
 	it = this->locations.begin();
 	for ( ; it != this->locations.end(); it++ ) {
 		delete it->second;
 	}
+}
+
+
+LocationContext*	ServerContext::getLocation( const std::string& url ) {
+	LocationContext::locIter it = this->locations.begin();
+	LocationContext::locIter ite = this->locations.end();
+	while ( it != ite ) {
+		if ( it->first == url )
+			return it->second;
+		LocationContext*	ans = it->second->getLocation( url );
+		if ( ans != nullptr )
+			return ans;
+		it++;
+	}
+	return nullptr;
 }
 
 void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports, Poller& pollfds )
@@ -243,10 +272,11 @@ void	ServerContext::createSocket(std::map<int, ServerContext&>&	ports, Poller& p
 }
 
 
+
 /*	MainContext class */
 
 MainContext::~MainContext( void ) {
-	std::map<std::string, ServerContext*>::iterator it;
+	servIter it;
 	it = this->servers.begin();
 	for ( ; it != this->servers.end(); it++) {
 		delete it->second;
@@ -254,43 +284,33 @@ MainContext::~MainContext( void ) {
 }
 
 void   MainContext::createServerSockets( Poller& pollfds ) {
-	std::map<std::string, ServerContext*>::iterator itb = this->servers.begin();
-	std::map<std::string, ServerContext*>::iterator ite = this->servers.end();
+	servIter itb = this->servers.begin();
+	servIter ite = this->servers.end();
 	while (itb != ite) {
 		itb->second->createSocket(this->ports, pollfds );
 		itb++;
 	}
 }
 
-// void MainContext::addSocketToPoll( pollfd* pollfds ) {
-// 	int i = 0;
-// 	std::map<int, ServerContext&>::const_iterator it = this->ports.begin();
-// 	while ( it != this->ports.end() ) {
-// 		pollfds[i].fd = it->first;
-// 		pollfds[i].events = POLLIN;
-// 		i++;
-// 		it++;
-// 	}
-// }
-
-int MainContext::getFd( pollfd *pollfds ) {
-	int readySockets = poll(pollfds, 10 + 1, -1);
-
-	if (readySockets < 0) {
-		// Handle error
-		this->logs << ERROR << "Error in poll: " << strerror(errno) << END;
-		return -1;
-	}
-	else if (readySockets == 0) {
-		// Handle timeout (not possible here, but good practice)
-		this->logs << ERROR << "Timeout in poll" << END;
-		return -1;
-	}
-	int i = 0;
-	while (!(pollfds[i].revents & POLLIN) && !(pollfds[i].revents & POLLOUT))
-		i++;
-	return i;
-}
 
 MainContext::MainContext( LogStream& lgs ) : HttpContext(lgs) {
+}
+
+ServerContext*	MainContext::getServer( const std::string& server_name ) {
+	servIter it = this->servers.find( server_name );
+	if ( it != this->servers.end() )
+		return it->second;
+	return nullptr;
+}
+
+LocationContext*	MainContext::getLocation( const std::string& url ) {
+	servIter	it = this->servers.begin();
+	servIter	ite = this->servers.end();
+	while (it != ite) {
+		LocationContext*	ans = it->second->getLocation( url );
+		if ( ans != nullptr )
+			return ans;
+		it++;
+	}
+	return nullptr;
 }

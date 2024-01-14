@@ -6,7 +6,7 @@
 /*   By: zel-bouz <zel-bouz@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/29 22:52:05 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/13 15:06:27 by zel-bouz         ###   ########.fr       */
+/*   Updated: 2024/01/13 17:54:07 by zel-bouz         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,6 +111,9 @@ class	HttpContext {
 
 class	LocationContext : public HttpContext {
 	public:
+
+		typedef std::map<std::string, LocationContext*>::iterator locIter;
+		
 		std::pair<int, std::string>				redirect;
 		std::vector<std::string>				cgiExtentions;
 		HttpMethods								allowedMethods;
@@ -120,11 +123,12 @@ class	LocationContext : public HttpContext {
 		LocationContext( const HttpContext& http ) : HttpContext( http ) {};
 		~LocationContext( );
 		bool	has( const std::string& path );
+		LocationContext*	getLocation( const std::string& url );
 };
 
 
 class	ServerContext : public HttpContext {
-	public:
+	public:		
 		std::vector<ListenAddress>					listenAddrs;
 		HttpMethods									allowedMethods;
 		std::map<std::string, LocationContext*>		locations;
@@ -133,18 +137,23 @@ class	ServerContext : public HttpContext {
 		ServerContext( LogStream& lgs ) : HttpContext(lgs) {};
 		ServerContext( const HttpContext& http ) : HttpContext( http ) {};
 		~ServerContext( void );
-
+		
+		LocationContext*	getLocation( const std::string& url );
+		
 		void	createSocket(std::map<int, ServerContext&>&	ports, Poller& pollfds );
 		bool	has( const std::string& path );
 };
 
 class	MainContext : public HttpContext {
 	public:
+	
+		typedef std::map<std::string, ServerContext*>::iterator	servIter;
+		
 		std::map<std::string, ServerContext*>	servers;
 		std::map<int, ServerContext&>			ports;
 		MainContext( LogStream& lgs );
-		void createServerSockets( Poller& pollfds );
-		// void addSocketToPoll( pollfd* pollfds );
-		int getFd( pollfd *pollfds );
+		void				createServerSockets( Poller& pollfds );
+		ServerContext*		getServer( const std::string& server_name );
+		LocationContext*	getLocation( const std::string& url );
 		~MainContext( void );
 };
