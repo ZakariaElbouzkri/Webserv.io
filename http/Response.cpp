@@ -1,30 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: abizyane <abizyane@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/23 12:40:18 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/14 14:38:29 by abizyane         ###   ########.fr       */
+/*   Created: 2024/01/06 23:08:48 by abizyane          #+#    #+#             */
+/*   Updated: 2024/01/17 15:50:46 by abizyane         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "servIO.hpp"
+#include "Response.hpp"
 
-LogStream	logs;
+Response::Response(int status){
 
-std::map<std::string, std::string> mimeTypes;
+}
 
+bool Response::good(){
+    
+}
 
-int	main() {
-	MainContext	http( logs );
-	try {
-		Parser	parser;
-		parser.parse( http );
-	} catch( std::exception & e ) {
-		std::cerr << e.what() << std::endl;
-	}
-	init_mimeTypes();
-	servCore( http );
+std::string &Response::GetResponse(){
+    
+}
+
+std::string &Response::GetHeader(const std::__1::string &key){
+    
 }

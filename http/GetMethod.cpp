@@ -1,30 +1,14 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
+/*   GetMethod.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: abizyane <abizyane@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/23 12:40:18 by zel-bouz          #+#    #+#             */
-/*   Updated: 2024/01/14 14:38:29 by abizyane         ###   ########.fr       */
+/*   Created: 2024/01/13 13:47:55 by abizyane          #+#    #+#             */
+/*   Updated: 2024/01/17 15:44:53 by abizyane         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "servIO.hpp"
+#include "Request.hpp"
 
-LogStream	logs;
-
-std::map<std::string, std::string> mimeTypes;
-
-
-int	main() {
-	MainContext	http( logs );
-	try {
-		Parser	parser;
-		parser.parse( http );
-	} catch( std::exception & e ) {
-		std::cerr << e.what() << std::endl;
-	}
-	init_mimeTypes();
-	servCore( http );
-}
