@@ -1,28 +1,68 @@
-### parsing BNF Grammar
 
-<MainContext> = "http" "{" {<http-directives> | <serverContext>} "}"
 
-<serverContext> = "server" "[" <WORD: server_name> "]" "{" {<server-directives> | <locationContext>} "}"
+HttpContext ::= "http" "{" {<httpDirectives>+ | <ServerContext>} "}"
 
-<locationContext> = "location" "[" <WORD: route> "]" "{" {<loaction-directives> | <locationContext>} "}"
+ServerContext ::= "server" <Key> "{" { <serverDirectives> | <LocationContext> } "}"
 
-<http-directives> = {<http-directive> ";"}+
+LocationContext ::= "location" <Key> "{" { <locationDirectives> | <LocationContext> } "}"
 
-<server-directives> = {<server-directive> ";"}+
 
-<location-directives> = {<location-directive> ";" }+
+httpDirectives ::= {<http-directive> | <http-directive> }
 
-<http-directive> = { 
-    "root" <WORD> | "allow" {("GET" | "POST" | "DELETE")}+ | "client_max_body_size" <SIZE> 
-    | "autoindex" ("on" | "off")
-    | "index" <WORD>+
-    | "error_page" <CODE> <WORD> 
+serverDirectives ::= {<server-directive> | <server-directive>}
+
+locationDirectives ::= {<location-directive> | <location-directive> }
+
+
+http-directive ::= {
+    <index> 
+    | <autoindex> 
+    | <error_page> 
+    | <error_log>
+    | <access_log>
+    | <root>
+    | <client_max_body_size>    
 }
 
-<server-directive> = {
-    { <http-directive> | "listen" <WORD>  | "return" <INT> [<WORD>] } | <serverContext>
+
+server-directive ::= {
+    <http-directives>
+    | <allow>
+    | <listen>
 }
 
-<location-directive> = {
-    { <http-directive> | "return" <INT> [<WORD>] | "cgi_assign" {<WORD>} } | <locationContext>
+location-directive ::= {
+    <http-directives>
+    | <redirect>
+    | <allow>
+    | <cgi_assign>
 }
+
+index ::= "index" { <Word> | <Word> } ";"
+
+autoindex ::= "autoindex" {"off" | "on"} ";"
+
+error_page ::= "error_page" {<number> | <number>} <Word> ";"
+
+error_log ::= "error_log" <Word> ";"
+
+access_log ::= "access_log" <Word> ";"
+
+root ::= "root" <Word> ";"
+
+client_max_body_size ::= "client_max_body_size" <number> ";"
+
+listen ::= "listen" <number> ";"
+
+redirect ::= "redirect" <number> <Word> ";"
+
+allow ::= "allow_methods" { "GET" | "POST" | "DELETE" } ";"
+
+cgi_assign ::= "cgi_assign" {<Word> | <Word>} ";"
+
+index ::= "index" <Word>
+
+Word ::= <character> | <word> 
+
+character ::= "abc..z" | "ABC..Z | "01..9"
+
