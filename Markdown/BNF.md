@@ -1,18 +1,16 @@
+## Parsing BNF Grammar
 
+HttpContext ::= "http" "{" {<httpDirectives>* | <ServerContext>} "}"
 
-HttpContext ::= "http" "{" {<httpDirectives>+ | <ServerContext>} "}"
+ServerContext ::= "server" <Key> "{" { <serverDirectives>* | <LocationContext> } "}"
 
-ServerContext ::= "server" <Key> "{" { <serverDirectives> | <LocationContext> } "}"
+LocationContext ::= "location" <Key> "{" { <locationDirectives>* | <LocationContext> } "}"
 
-LocationContext ::= "location" <Key> "{" { <locationDirectives> | <LocationContext> } "}"
+httpDirectives ::= <http-directive> 
 
+serverDirectives ::= <server-directive>
 
-httpDirectives ::= {<http-directive> | <http-directive> }
-
-serverDirectives ::= {<server-directive> | <server-directive>}
-
-locationDirectives ::= {<location-directive> | <location-directive> }
-
+locationDirectives ::= <location-directive>
 
 http-directive ::= {
     <index> 
@@ -23,7 +21,6 @@ http-directive ::= {
     | <root>
     | <client_max_body_size>    
 }
-
 
 server-directive ::= {
     <http-directives>
@@ -60,9 +57,6 @@ allow ::= "allow_methods" { "GET" | "POST" | "DELETE" } ";"
 
 cgi_assign ::= "cgi_assign" {<Word> | <Word>} ";"
 
-index ::= "index" <Word>
+Word ::= <character>*
 
-Word ::= <character> | <word> 
-
-character ::= "abc..z" | "ABC..Z | "01..9"
-
+character ::= "a" | "b" | "c" | ... | "z" | "A" | "B" | "C" | ... | "Z" | "0" | "1" | ... | "9"
